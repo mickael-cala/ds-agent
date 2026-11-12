@@ -1,0 +1,6 @@
+{
+  "serveur-local": {
+    "command": "/chemin/absolu/vers/mcp-server",
+    "args": []
+  }
+}

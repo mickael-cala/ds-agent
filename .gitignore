@@ -1,0 +1,54 @@
+# ==========================================
+# Binaires compilés (jamais versionnés)
+# ==========================================
+ds-agent
+ds-agent.exe
+*.exe
+*.dll
+*.so
+*.dylib
+audit_api/audit
+*.test
+*.out
+coverage*
+/bin/
+
+# ==========================================
+# Sauvegardes & fichiers temporaires
+# ==========================================
+*.bak
+*.bak[0-9]*
+*.orig
+*.rej
+*.swp
+*~
+*.tmp
+*.log
+
+# ==========================================
+# Secrets & configuration locale
+# ==========================================
+.env
+.env.*
+!.env.example
+mcp.json
+!.mcp.json.example
+
+# ==========================================
+# Corbeille du serveur MCP
+# ==========================================
+.mcp-trash/
+
+# ==========================================
+# Éditeurs / OS
+# ==========================================
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==========================================
+# Divers
+# ==========================================
+Nouveau\ Document\ texte.txt
