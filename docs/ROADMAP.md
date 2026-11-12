@@ -46,7 +46,7 @@ couverture (`v0.3 T1–T5`), injection de prompt et réseau (`v0.4`), fiabilité
 
 ## Les 6 constats d'audit externe → où ils sont traités
 
-L'audit du 2026-11-12 (voir [AUDIT.md](docs/AUDIT.md)) a relevé six faiblesses de fond. Voici
+L'audit du 2026-11-12 (voir [AUDIT.md](AUDIT.md)) a relevé six faiblesses de fond. Voici
 leur traduction en jalons, dans l'ordre où elles se traitent (les enablers d'abord).
 
 | # | Constat | Traité en | Items |
@@ -72,6 +72,8 @@ v0.4→v0.6 empilent des fonctionnalités sur un socle qu'on ne sait pas tester.
 - ✅ `B3` `session.go` (compaction, sessions, verrou) + `ui.go` (confirmation, diff, spinner,
   `sanitizeTerm`, `resumeOutil`, `printStatus`, `handleCommand`) + `trust.go` + `mcp.go` + `types.go`
 - ✅ `B4` `main.go` = 344 lignes (config, prompt, `main`, REPL, drapeaux)
+- ✅ `B5` Paquet `main` déplacé dans `cmd/ds-agent/`, docs de programme dans `docs/`,
+  `Makefile` à la racine (5 `.md` à la racine)
 - **Critère de sortie** : ✅ aucun fichier > 550 lignes, 57 tests + 16 scénarios hostiles +
   e2e verts, binaire identique en comportement (`--help`, `--version`, e2e).
 
@@ -205,5 +207,5 @@ C'est le jalon qui transforme « parfois correct » en « utilisable au quotidie
 
 Une case = une PR, annoncée en issue avec le titre de l'item. Les propositions de
 réordonnancement sont bienvenues si elles s'appuient sur un cas d'usage réel et un critère
-de sortie mesurable. Voir [CONTRIBUTING.md](CONTRIBUTING.md) et [PLAN_ACTION.md](docs/PLAN_ACTION.md)
+de sortie mesurable. Voir [CONTRIBUTING.md](../CONTRIBUTING.md) et [PLAN_ACTION.md](PLAN_ACTION.md)
 pour le rythme (sprints de 5).

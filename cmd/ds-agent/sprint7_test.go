@@ -161,7 +161,7 @@ func TestCheckSecrets(t *testing.T) {
 	if err := os.WriteFile(fuite, []byte("var k = \""+faux+"\"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command("bash", "scripts/check-secrets.sh")
+	cmd := exec.Command("bash", filepath.Join("..", "..", "scripts", "check-secrets.sh"))
 	cmd.Env = append(os.Environ(), "CHECK_SECRETS_ROOT="+dir)
 	if out, err := cmd.CombinedOutput(); err == nil {
 		t.Fatalf("secret non détecté : %s", out)
@@ -170,7 +170,7 @@ func TestCheckSecrets(t *testing.T) {
 	if err := os.WriteFile(fuite, []byte("var k = \"rien\"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	cmd = exec.Command("bash", "scripts/check-secrets.sh")
+	cmd = exec.Command("bash", filepath.Join("..", "..", "scripts", "check-secrets.sh"))
 	cmd.Env = append(os.Environ(), "CHECK_SECRETS_ROOT="+dir)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("faux positif sur un fichier propre : %v — %s", err, out)

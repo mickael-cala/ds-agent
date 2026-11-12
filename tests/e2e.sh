@@ -12,7 +12,7 @@ PORT="${E2E_PORT:-8795}"
 rm -rf "$OUT"
 mkdir -p "$OUT/home/.config" "$OUT/tmp-baseline" "$OUT/tmp-toolcall"
 
-go build -o "$OUT/ds-agent" . || exit 1
+go build -o "$OUT/ds-agent" ./cmd/ds-agent || exit 1
 go build -o "$OUT/paranoid" ./tools/paranoid || exit 1
 
 "$OUT/paranoid" -addr "127.0.0.1:$PORT" >"$OUT/srv.log" 2>&1 &

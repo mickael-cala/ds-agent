@@ -8,7 +8,7 @@ publication d'une version, et conduite.
 ```bash
 git clone https://github.com/mickael-cala/ds-agent && cd ds-agent
 cp .env.example .env                 # DEEPSEEK_API_KEY (jamais commité)
-go build ./... && go test ./...
+go build ./... && go test ./...   # depuis la racine
 bash tests/paranoid.sh               # banc hostile, hors ligne
 ```
 
@@ -38,10 +38,10 @@ Les invariants détaillés sont dans [AGENTS.md](AGENTS.md) ; ils s'appliquent a
 
 | Commande | Objet |
 |---|---|
-| `go test ./...` | 57 tests unitaires (compaction, sécurité, outils, sessions) |
+| `make test` (`go test ./...`) | 57 tests unitaires (compaction, sécurité, outils, sessions) |
 | `go test -race ./...` | même chose sous détecteur de course (CI Linux ; indisponible sur `android/arm64`) |
-| `bash tests/paranoid.sh` | 16 scénarios hostiles (429, HTML, JSON tronqué, 40 Mo, SSE…), code de sortie = nombre d'échecs |
-| `bash tests/e2e.sh` | bout-en-bout : binaire réel + mock, boucle outil → réponse |
+| `make banc` (`bash tests/paranoid.sh`) | 16 scénarios hostiles (429, HTML, JSON tronqué, 40 Mo, SSE…), code de sortie = nombre d'échecs |
+| `make e2e` (`bash tests/e2e.sh`) | bout-en-bout : binaire réel + mock, boucle outil → réponse |
 | `./scripts/check-secrets.sh` | aucun jeton, clé privée ou fichier interdit versionné |
 | `( cd audit_api && make )` | fmt, vet, test, build du sous-projet |
 
@@ -58,7 +58,7 @@ fonctionnalité : un test, ou un scénario dans `tests/`.
 
 ## Planifier
 
-[ROADMAP.md](ROADMAP.md) est le plan de référence : un item = une PR, annoncée en issue.
+[ROADMAP.md](docs/ROADMAP.md) est le plan de référence : un item = une PR, annoncée en issue.
 [docs/PLAN_ACTION.md](docs/PLAN_ACTION.md) ne contient que le sprint en cours (5 items).
 Pas de nouveau fichier `.md` à la racine : consolider dans les six sources de vérité
 (`README`, `ERRATA`, `ROADMAP`, `SECURITY`, `AGENTS`, `CHANGELOG`).
@@ -75,7 +75,7 @@ Pas de nouveau fichier `.md` à la racine : consolider dans les six sources de v
 for c in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64; do
   os=${c%/*}; arch=${c#*/}; ext=""; [ "$os" = windows ] && ext=".exe"
   CGO_ENABLED=0 GOOS=$os GOARCH=$arch go build -trimpath \
-    -ldflags "-s -w -X main.version=vX.Y.Z" -o "ds-agent_vX.Y.Z_${os}_${arch}${ext}" .
+    -ldflags "-s -w -X main.version=vX.Y.Z" -o "ds-agent_vX.Y.Z_${os}_${arch}${ext}" ./cmd/ds-agent
 done
 sha256sum ds-agent_vX.Y.Z_* > SHA256SUMS
 ```

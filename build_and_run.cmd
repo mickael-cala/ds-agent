@@ -8,7 +8,7 @@ REM ==========================================
 REM Configuration
 REM ==========================================
 set MODULE_NAME=github.com/mickael-cala/ds-agent
-set MAIN_FILE=main.go
+set PKG_DIR=./cmd/ds-agent
 set OUTPUT_EXE=ds-agent.exe
 
 echo === Agent de Build Go (Windows) ===
@@ -37,7 +37,7 @@ REM 2. Compilation
 REM ==========================================
 echo/
 echo [INFO] Compilation en cours...
-go build -ldflags="-s -w" -o %OUTPUT_EXE% %MAIN_FILE%
+go build -ldflags="-s -w" -o %OUTPUT_EXE% %PKG_DIR%
 
 if %ERRORLEVEL% NEQ 0 (
     echo [ERREUR] La compilation a echoue ^(Exit Code: %ERRORLEVEL%^).

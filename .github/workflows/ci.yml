@@ -69,7 +69,7 @@ jobs:
 
       - name: Binaire versionné (linux)
         if: runner.os == 'Linux'
-        run: go build -ldflags "-s -w -X main.version=${GITHUB_REF_NAME}" -o ds-agent .
+        run: go build -ldflags "-s -w -X main.version=${GITHUB_REF_NAME}" -o ds-agent ./cmd/ds-agent
 
       - name: Vérification du binaire (linux)
         if: runner.os == 'Linux'

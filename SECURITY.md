@@ -60,7 +60,7 @@ autre processus du même compte.
 5. **Windows** : pas de `flock`, `kill` limité au processus direct, pas de sandbox.
 6. **Les checkpoints git** échouent silencieusement sans `user.name`/`user.email`.
 
-Chaque point est suivi dans [ROADMAP.md](ROADMAP.md) (items `S1`–`S8`, `v0.4`).
+Chaque point est suivi dans [ROADMAP.md](docs/ROADMAP.md) (items `S1`–`S8`, `v0.4`).
 
 ## Gestion des secrets (projet)
 

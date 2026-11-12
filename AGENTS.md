@@ -8,13 +8,13 @@ lui-même…) travaillant dans ce dépôt. À lire avant d'écrire une ligne de 
 Agent de codage en terminal, en Go, propulsé par l'API DeepSeek. Un binaire : boucle REPL →
 appel API → `tool_calls` → outils natifs (`local_*`) ou MCP → retour au modèle. Une seule
 dépendance (`mcp-go`), aucun framework, aucune base de données. Sources de vérité :
-[ARCHITECTURE.md](ARCHITECTURE.md), [ROADMAP.md](ROADMAP.md), [ERRATA.md](ERRATA.md),
+[ARCHITECTURE.md](ARCHITECTURE.md), [ROADMAP.md](docs/ROADMAP.md), [ERRATA.md](docs/ERRATA.md),
 [SECURITY.md](SECURITY.md).
 
 ## Commandes
 
 ```bash
-go build -o ds-agent .                       # build
+go build -o ds-agent ./cmd/ds-agent/cmd/ds-agent                       # build
 go build -ldflags "-X main.version=x.y.z" -o ds-agent .   # build versionné
 go test -count=1 ./...                       # 57 tests
 gofmt -l -w . && go vet ./...                # format + analyse
@@ -73,7 +73,7 @@ tester sans réseau : `DEEPSEEK_API_BASE=http://127.0.0.1:PORT` + `tools/paranoi
 
 ## Où planifier
 
-[ROADMAP.md](ROADMAP.md) est le **plan de référence** (jalons, critères de sortie).
+[ROADMAP.md](docs/ROADMAP.md) est le **plan de référence** (jalons, critères de sortie).
 [docs/PLAN_ACTION.md](docs/PLAN_ACTION.md) ne contient que le sprint en cours (5 items).
 Ne pas inventer d'item hors roadmap : ouvrir une issue modifiant la roadmap d'abord.
 **Pas de nouveau `.md` à la racine** : consolider dans les six sources de vérité

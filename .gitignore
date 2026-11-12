@@ -53,3 +53,6 @@ desktop.ini
 # Divers
 # ==========================================
 Nouveau\ Document\ texte.txt
+
+# Sauvegardes locales
+.backups/

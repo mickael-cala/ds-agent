@@ -6,6 +6,17 @@ publié sous forme de release binaire : les versions ci-dessous décrivent l'ét
 
 ## [Non publié]
 
+### Modifié — racine réorganisée (v0.3, B5)
+
+- Paquet `main` déplacé dans **`cmd/ds-agent/`** (8 fichiers + `sandbox`, `audit`, `proc_*`,
+  tests) — aucun chemin d'import ne change, le module reste à la racine.
+- `ROADMAP`, `ERRATA`, `LICENSING` déplacés dans **`docs/`** ; la racine ne garde que
+  `README`, `AGENTS`, `CONTRIBUTING`, `SECURITY`, `CHANGELOG` (+ `LICENSE`).
+- **`Makefile`** : `build`, `run`, `fmt`, `lint`, `test`, `secrets`, `banc`, `e2e`, `check`,
+  `clean` ; `make check` = tout ce qui doit être vert avant une PR.
+- `tests/*.sh`, `build_and_run.*`, CI et documentation alignés sur `./cmd/ds-agent`.
+- Sauvegardes locales `main.go.bak*` déplacées dans `.backups/` (ignoré par git).
+
 ### Modifié — `main.go` découpé (v0.3, B1–B4)
 
 - `main.go` : 2 230 → **344 lignes**. Nouveaux fichiers : `types.go`, `llm.go`, `tools.go`,
@@ -22,7 +33,7 @@ publié sous forme de release binaire : les versions ci-dessous décrivent l'ét
 
 ### À venir
 
-Voir [ROADMAP.md](ROADMAP.md), qui traduit les six constats de l'audit externe en jalons :
+Voir [ROADMAP.md](docs/ROADMAP.md), qui traduit les six constats de l'audit externe en jalons :
 
 - **v0.3 « socle vérifiable »** : découpage de `main.go`, couverture ≥ 65 % + fuzzing,
   `THREAT_MODEL.md`, consolidation et vérification automatique de la documentation.

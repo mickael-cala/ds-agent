@@ -7,7 +7,7 @@ set -u
 cd "$(dirname "$0")/.." || exit 1
 OUT="${TMPDIR:-/tmp}"; PORT=8789
 go build -o "$OUT/paranoid" ./tools/paranoid || exit 1
-go build -o "$OUT/ds-agent-crash" . || exit 1
+go build -o "$OUT/ds-agent-crash" ./cmd/ds-agent || exit 1
 : >"$OUT/crash-paranoid.log"
 "$OUT/paranoid" -addr "127.0.0.1:$PORT" >"$OUT/crash-paranoid.log" 2>&1 &
 SRV=$!

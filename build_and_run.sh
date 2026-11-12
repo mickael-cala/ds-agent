@@ -11,7 +11,7 @@ set -euo pipefail
 # Configuration
 # ==========================================
 MODULE_NAME="github.com/mickael-cala/ds-agent"
-MAIN_FILE="main.go"
+PKG_DIR="./cmd/ds-agent"
 OUTPUT_EXE="ds-agent"          # pas de .exe sous Linux
 
 echo "=== Agent de Build Go (Linux) ==="
@@ -39,7 +39,7 @@ fi
 # ==========================================
 echo
 echo "[INFO] Compilation en cours..."
-if ! go build -ldflags="-s -w" -o "$OUTPUT_EXE" "$MAIN_FILE"; then
+if ! go build -ldflags="-s -w" -o "$OUTPUT_EXE" "$PKG_DIR"; then
     echo "[ERREUR] La compilation a échoué."
     exit 1
 fi

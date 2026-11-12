@@ -26,22 +26,35 @@ fichiers locaux (`~/.config/ds-agent/` : sessions + journal d'audit).
                  retour à callChat  ⟳  (max 30 itérations)
 ```
 
+## Arborescence
+
+```
+cmd/ds-agent/     paquet main : binaire, boucle, outils, UI, sessions
+docs/             ROADMAP, ERRATA, LICENSING, AUDIT, PLAN_ACTION
+scripts/          rename-module.sh, check-secrets.sh
+tests/            banc hostile, e2e, compaction A/B, coupures, PARANOID.md
+tools/paranoid/   faux backend DeepSeek (16 scénarios)
+audit_api/        sous-projet Go (micro-API, module séparé)
+racine            README, AGENTS, CONTRIBUTING, SECURITY, CHANGELOG, LICENSE,
+                  Makefile, go.mod/sum, .env.example, mcp.json.example
+```
+
 ## Fichiers
 
 | Fichier | Lignes | Rôle |
 |---|---|---|
-| `main.go` | ~340 | constantes d'entrée, prompt système, `main`, REPL, drapeaux, `usage` |
-| `types.go` | ~180 | types API DeepSeek, `Agent`, `MCPConfig`, constantes |
-| `llm.go` | ~250 | `runLoop`, `callChat`, `chatOnce` (retries), `salvageJSON`, `snippet` |
-| `tools.go` | ~410 | `getTools`, `executeTool`, `tool*`, outils web, `validerURLFetch` |
-| `trust.go` | ~200 | `safePath`, `childEnv`, secrets, denylists, normalisation de blocs |
-| `session.go` | ~280 | compaction, sessions, `verrouSession`, `writeFileAtomic` |
-| `ui.go` | ~540 | `approve`/`Prompter`, diff, spinner, `printStatus`, `handleCommand` |
-| `mcp.go` | ~90 | `commandeMCP`, `initMCPServers`, `closeMCPServers` |
-| `sandbox.go` | ~105 | `commandWithSandbox` (bwrap), `motDetecte` |
-| `audit.go` | ~75 | journal JSONL append-only |
-| `proc_unix.go` / `proc_windows.go` | ~30 | groupe de processus, `flock` |
-| `*.go` (tests) | `compact_test.go`, `safety_test.go`, `trust_test.go`, `sprint3…8_test.go` |
+| `cmd/ds-agent/main.go` | ~340 | constantes d'entrée, prompt système, `main`, REPL, drapeaux, `usage` |
+| `cmd/ds-agent/types.go` | ~180 | types API DeepSeek, `Agent`, `MCPConfig`, constantes |
+| `cmd/ds-agent/llm.go` | ~250 | `runLoop`, `callChat`, `chatOnce` (retries), `salvageJSON`, `snippet` |
+| `cmd/ds-agent/tools.go` | ~410 | `getTools`, `executeTool`, `tool*`, outils web, `validerURLFetch` |
+| `cmd/ds-agent/trust.go` | ~200 | `safePath`, `childEnv`, secrets, denylists, normalisation de blocs |
+| `cmd/ds-agent/session.go` | ~280 | compaction, sessions, `verrouSession`, `writeFileAtomic` |
+| `cmd/ds-agent/ui.go` | ~540 | `approve`/`Prompter`, diff, spinner, `printStatus`, `handleCommand` |
+| `cmd/ds-agent/mcp.go` | ~90 | `commandeMCP`, `initMCPServers`, `closeMCPServers` |
+| `cmd/ds-agent/sandbox.go` | ~105 | `commandWithSandbox` (bwrap), `motDetecte` |
+| `cmd/ds-agent/audit.go` | ~75 | journal JSONL append-only |
+| `cmd/ds-agent/proc_unix.go` / `proc_windows.go` | ~30 | groupe de processus, `flock` |
+| `cmd/ds-agent/*_test.go` | `compact`, `safety`, `trust`, `sprint3…8` (57 tests) |
 | `tools/paranoid/` | faux backend DeepSeek : 16 scénarios hostiles (`[[429]]`, `[[html]]`…) |
 | `tests/*.sh` | banc hostile, e2e REPL, compaction A/B, coupures |
 | `audit_api/` | sous-projet : micro-API Go 1.22 (routage par méthode) + 4 tests |

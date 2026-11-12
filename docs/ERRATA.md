@@ -22,7 +22,7 @@ sortait donc avec `json:"name"` et le type anonyme ne correspondait plus à `Too
 (`getTools`, `newTool`, `initMCPServers`).
 
 **Verrou.** `go build` ; le code ne compile pas si le piège est réintroduit.
-Règle consignée dans [AGENTS.md](AGENTS.md) et [CONTRIBUTING.md](CONTRIBUTING.md).
+Règle consignée dans [AGENTS.md](../AGENTS.md) et [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ### ERRATA-002 — Modèle `deepseek-flash` inexistant 🟠
 
@@ -388,4 +388,4 @@ hors dépôt. Amélioration prévue : identité dédiée + message traçable + a
 
 Ouvrez une issue avec : version/commit, OS, commande exacte, extrait de sortie
 (**sans clé API**), et si possible un scénario reproductible pour `tools/paranoid`.
-Pour une faille de sécurité : voir [SECURITY.md](SECURITY.md), jamais en issue publique.
+Pour une faille de sécurité : voir [SECURITY.md](../SECURITY.md), jamais en issue publique.

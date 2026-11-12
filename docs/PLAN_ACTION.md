@@ -24,12 +24,13 @@ Règles du jeu :
 | 7 | Hygiène avant release | 5 | ✅ fait | « Sprint 7 » |
 | 8 | Finaliser v0.2 | 5 | ✅ fait | « Sprint 8 » |
 | 9 | Découpage v0.3 + consolidation docs | 5 | ✅ fait | « Sprint 9 » |
+| 10 | Réorganisation de la racine | 5 | ✅ fait | « Sprint 10 » |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
 Les hashs de commits ne sont **pas** stockés ici (ils changent à chaque rebase) : se référer
-aux messages de commit. La suite du programme est dans [ROADMAP.md](../ROADMAP.md) (v0.3 → v1.0).
+aux messages de commit. La suite du programme est dans [ROADMAP.md](ROADMAP.md) (v0.3 → v1.0).
 
-**Bilan : 40/40 items livrés**, 57 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
+**Bilan : 45/45 items livrés**, 57 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
 CI multi-plateforme, documentation à jour.
 
 ---
@@ -131,6 +132,16 @@ Objectif : rendre les garde-fous **prouvables par une machine**, pas seulement p
 | 9.3 | `main.go` ≤ 400 lignes | B4 | 344 lignes | ✅ |
 | 9.4 | Comportement inchangé | — | 57 tests, 16 scénarios hostiles, e2e 2/2, `--version`, `--help` | ✅ |
 | 9.5 | Consolidation documentaire (9 `.md` à la racine) | D1 | suppression/fusion, liens vérifiés | ✅ |
+
+## Sprint 10 — « racine respirable »
+
+| # | Item | Réf. | Preuve | Statut |
+|---|---|---|---|---|
+| 10.1 | Paquet `main` déplacé dans `cmd/ds-agent/` (chemins d'import inchangés) | B5 | 20 fichiers déplacés, `go build ./...` | ✅ |
+| 10.2 | Docs de programme dans `docs/` (`ROADMAP`, `ERRATA`, `LICENSING`) | D1 | racine : 5 `.md` | ✅ |
+| 10.3 | `Makefile` : `build`, `test`, `lint`, `secrets`, `banc`, `e2e`, `check`, `clean` | — | `make help` | ✅ |
+| 10.4 | Scripts, CI et bancs alignés sur `./cmd/ds-agent` | — | banc 16/16, e2e 2/2, CI verte | ✅ |
+| 10.5 | Sauvegardes locales hors racine (`.backups/`, ignoré) | — | `ls` racine | ✅ |
 
 ## Réserve (non planifié)
 

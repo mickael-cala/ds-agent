@@ -1,8 +1,8 @@
 # ds-agent
 
 [![Go](https://img.shields.io/badge/Go-%E2%89%A5%201.22-00ADD8)](https://go.dev)
-[![Licence](https://img.shields.io/badge/licence-AGPL--3.0%20%7C%20commercial-blue)](LICENSING.md)
-[![Statut](https://img.shields.io/badge/statut-v0.2.0-orange)](ROADMAP.md)
+[![Licence](https://img.shields.io/badge/licence-AGPL--3.0%20%7C%20commercial-blue)](docs/LICENSING.md)
+[![Statut](https://img.shields.io/badge/statut-v0.2.0-orange)](docs/ROADMAP.md)
 [![Release](https://img.shields.io/github/v/release/mickael-cala/ds-agent)](../../releases/latest)
 [![CI](https://github.com/mickael-cala/ds-agent/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 
@@ -41,10 +41,13 @@ export DEEPSEEK_API_KEY=…
 ```bash
 git clone https://github.com/mickael-cala/ds-agent && cd ds-agent
 cp .env.example .env            # renseignez DEEPSEEK_API_KEY (jamais commité)
+make build                      # ou : go build -o ds-agent ./cmd/ds-agent
 set -a; . ./.env; set +a
-go build -ldflags "-s -w -X main.version=$(git describe --tags 2>/dev/null || echo dev)" -o ds-agent .
 ./ds-agent
 ```
+
+`make help` liste les cibles : `build`, `test`, `lint`, `secrets`, `banc`, `e2e`,
+`check` (tout avant une PR), `clean`.
 
 Scripts fournis : `build_and_run.sh` (Unix), `build_and_run.cmd` (Windows), `clean.sh` /
 `clean.cmd` (binaire, sessions, journal d'audit). Prérequis : Go ≥ 1.22, `sh`/`bash`
@@ -164,11 +167,13 @@ L'agent lance chaque serveur, l'initialise, liste ses outils et les injecte dans
 
 Ce que l'agent **ne** protège pas : `local_bash` reste un shell complet, le réseau n'est pas
 isolé, et une injection de prompt (contenu lu) n'est pas détectée. Voir
-[SECURITY.md](SECURITY.md) et les trous assumés dans [ERRATA.md](ERRATA.md).
+[SECURITY.md](SECURITY.md) et les trous assumés dans [ERRATA.md](docs/ERRATA.md).
 
 ## Tests
 
 ```bash
+make check                    # lint + tests + anti-secret + banc hostile + e2e
+# détail :
 go test ./...                 # 57 tests (compaction, sécurité, outils, sessions)
 go vet ./... && gofmt -l .
 bash tests/paranoid.sh        # banc hostile : 16 scénarios, 0 échec attendu
@@ -217,23 +222,34 @@ DEEPSEEK_API_BASE=http://127.0.0.1:8792 DEEPSEEK_API_KEY=test ./ds-agent
 **Où sont mes données ?** Prompts et extraits de fichiers partent vers l'API configurée ;
 aucune télémétrie propre. Sessions et audit restent locaux, en clair (chiffrement en v0.4).
 
+## Structure
+
+```
+cmd/ds-agent/     binaire (main, boucle, outils, UI, sessions)
+docs/             ROADMAP, ERRATA, LICENSING, AUDIT, PLAN_ACTION
+scripts/          rename-module.sh, check-secrets.sh
+tests/            banc hostile, e2e, compaction A/B, coupures
+tools/paranoid/   faux backend DeepSeek (16 scénarios hostiles)
+audit_api/        sous-projet Go (micro-API, module séparé)
+```
+
 ## Documentation
 
 | Doc | Contenu |
 |---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | flux, fichiers, décisions de conception, points d'extension |
-| [ROADMAP.md](ROADMAP.md) | état actuel + jalons v0.3 → v1.0 avec critères de sortie |
-| [ERRATA.md](ERRATA.md) | défauts corrigés (avec test) et défauts ouverts (avec parade) |
+| [ROADMAP.md](docs/ROADMAP.md) | état actuel + jalons v0.3 → v1.0 avec critères de sortie |
+| [ERRATA.md](docs/ERRATA.md) | défauts corrigés (avec test) et défauts ouverts (avec parade) |
 | [SECURITY.md](SECURITY.md) | modèle de menace, garde-fous, signalement |
 | [AGENTS.md](AGENTS.md) | consignes pour les agents de codage IA |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | environnement, règles, tests, publication, conduite |
 | [CHANGELOG.md](CHANGELOG.md) | historique des versions |
-| [LICENSING.md](LICENSING.md) | double licence AGPL-3.0 / commerciale |
+| [LICENSING.md](docs/LICENSING.md) | double licence AGPL-3.0 / commerciale |
 | [docs/AUDIT.md](docs/AUDIT.md) | audit externe (dev / cyber / UI-UX), constats et plan |
 | [docs/PLAN_ACTION.md](docs/PLAN_ACTION.md) | sprint en cours (5 items) et historique |
 
 ## Licence
 
 Double licence, au choix : **GNU AGPL v3.0** ([`LICENSE`](LICENSE)) ou **commerciale**
-([LICENSING.md](LICENSING.md)). Identifiant SPDX : `AGPL-3.0-only OR LicenseRef-Commercial`.
+([LICENSING.md](docs/LICENSING.md)). Identifiant SPDX : `AGPL-3.0-only OR LicenseRef-Commercial`.
 Copyright (C) 2025 les contributeurs de `ds-agent`.

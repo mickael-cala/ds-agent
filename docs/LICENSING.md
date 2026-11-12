@@ -61,7 +61,7 @@ d'affaires, fixées au devis. Sans devis signé, aucune licence commerciale n'es
 **Données.** L'agent utilise par défaut une API tierce (DeepSeek) : prompts et extraits de
 code quittent la machine. Le Concédant ne collecte ni ne conserve de données d'usage. La
 conformité de la clé API et du traitement des données relève de votre responsabilité (voir
-[SECURITY.md](SECURITY.md)).
+[SECURITY.md](../SECURITY.md)).
 
 **Garanties.** Fourniture « en l'état », sans garantie d'absence de défaut. Pas de
 responsabilité pour dommages indirects, pertes d'exploitation ou destruction de données —
