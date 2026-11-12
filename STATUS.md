@@ -57,6 +57,7 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 | D6 | Un seul `SIGINT` géré, pas de `SIGTERM` | arrêt sale via `kill`/systemd | ERRATA-102 |
 | D9 | Journal d'audit non borné en taille | croissance lente de `audit.jsonl` | C09, ROADMAP v0.3 |
 | D8 | `go.mod` déclare `go 1.27.1` | toolchains antérieures refusées | ERRATA-109 |
+| D11 | Module encore nommé `my_go_project` | `go install` impossible tant que non renommé | D01, `scripts/rename-module.sh` |
 | D10 | Binaire sans version par défaut (`dev`) | release à produire via ldflags | D13 |
 
 ## Plateformes

@@ -68,6 +68,12 @@ Pour tester sans réseau : `DEEPSEEK_API_BASE=http://127.0.0.1:PORT` + `tools/pa
 - Noms de test descriptifs en français : `TestCompactHistoryRespecteLeBudget`.
 - Pas de variable globale mutable hors `apiBase` (surcharge de test).
 
+## Renommage du module
+
+Ne jamais renommer « à la main » : `scripts/rename-module.sh <compte>` réécrit `go.mod`,
+`audit_api/go.mod`, les scripts de build et le badge du README, puis vérifie build, vet,
+tests (deux modules), e2e et banc hostile. Voir [PUBLISHING.md](PUBLISHING.md).
+
 ## Fichiers à ne pas modifier sans accord explicite
 
 | Fichier | Raison |

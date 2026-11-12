@@ -83,7 +83,7 @@ Même exercice avec trois autres affirmations du dépôt :
 
 ## 2. Volet DÉVELOPPEUR
 
-### D01 — Le module ne s'installe pas 🟡
+### D01 — Le module ne s'installe pas 🟡 — 🚧 outillé (`scripts/rename-module.sh`), en attente du compte GitHub
 `go.mod:1` déclare `module my_go_project`, `audit_api/go.mod` déclare `module audit`.
 Conséquences : `go install` impossible, imports non qualifiés, nom de paquet qui n'existe
 nulle part sur GitHub, confusion à la première contribution.

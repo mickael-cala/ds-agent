@@ -83,6 +83,16 @@ Objectif : rendre les garde-fous **prouvables par une machine**, pas seulement p
 | 5.4 | Garde-fou commandes destructrices (`rm -rf /`, `mkfs`, `dd of=/dev/…`, fork bomb…) | C08 | `TestMotDetecte`, `TestBashRefuseCommandeDestructrice` | ✅ |
 | 5.5 | `govulncheck` en CI + build multi-OS | C10 | job `vulnerabilites` | ✅ |
 
+## Sprint 6 — « nommer et publier »
+
+| # | Item | Réf. | Test / preuve | Statut |
+|---|---|---|---|---|
+| 6.1 | `scripts/rename-module.sh` : go.mod, `audit_api`, scripts, badge, vérifications | D01 | exécuté sur une copie (`exemple-org`) : build + 2 modules + e2e + banc | ✅ |
+| 6.2 | `PUBLISHING.md` : création du dépôt, auth, contrôles, push, après-push | — | relecture | ✅ |
+| 6.3 | Application au compte réel | D01 | `scripts/rename-module.sh <compte>` | ⬜ en attente du compte |
+| 6.4 | Réécriture des auteurs des 8 commits | — | `git log --format='%an <%ae>'` | ⬜ en attente |
+| 6.5 | Push, CI verte, badge aligné, protection de branche | C10 | onglet Actions | ⬜ en attente |
+
 ## Réserve (non planifié)
 
 | Item | Réf. | Pourquoi en réserve |

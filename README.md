@@ -29,7 +29,8 @@ Fichier principal : `main.go` (agent monolithique, ~1 200 lignes). Aucun framewo
 | [AUDIT.md](AUDIT.md) | audit pédagogique & paranoïaque : dev, cyber, UI/UX, scénarios d'attaque, plan d'action |
 | [ROADMAP.md](ROADMAP.md) | ce qui est fait, ce qui vient (v0.2 → v1.0), non-objectifs |
 | [ERRATA.md](ERRATA.md) | bugs corrigés (avec test de non-régression) et défauts ouverts |
-| [PLAN_ACTION.md](PLAN_ACTION.md) | correctifs de l'audit, en 4 sprints de 5, avec statuts |
+| [PLAN_ACTION.md](PLAN_ACTION.md) | correctifs de l'audit, en sprints de 5, avec statuts |
+| [PUBLISHING.md](PUBLISHING.md) | renommage du module, authentification, push et contrôles |
 | [FAQ.md](FAQ.md) | questions fréquentes (installation, coût, MCP, sécurité) |
 | [CHANGELOG.md](CHANGELOG.md) | historique des versions |
 | [AGENTS.md](AGENTS.md) | consignes pour les agents de codage IA travaillant sur le dépôt |
