@@ -93,7 +93,7 @@ Objectif : rendre les garde-fous **prouvables par une machine**, pas seulement p
 | 6.2 | `PUBLISHING.md` : création du dépôt, auth, contrôles, push, après-push | — | relecture | ✅ |
 | 6.3 | Application au compte réel : `mickael-cala` | D01 | `head -1 go.mod` → `github.com/mickael-cala/ds-agent` | ✅ |
 | 6.4 | Réécriture des auteurs des commits | — | `git log --format='%an <%ae>'` | ✅ |
-| 6.5 | Push, CI verte, badge aligné, protection de branche | C10 | onglet Actions | ⬜ bloqué : aucune authentification GitHub sur cette machine |
+| 6.5 | Push effectué, CI : 7/8 jobs verts, `govulncheck` corrigé par la version de Go | C10 | run #2 attendu | 🚧 protection de branche à activer |
 
 ## Réserve (non planifié)
 

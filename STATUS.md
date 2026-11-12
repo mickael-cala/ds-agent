@@ -17,6 +17,8 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 | `go test -race` | ⛔ non supporté sur `android/arm64` — exécuté en CI Linux |
 | Test bout-en-bout | ✅ `tests/e2e.sh` (binaire réel + mock, 2 scénarios) |
 | CI | ✅ `.github/workflows/ci.yml` : qualité (`-race`), build 3 OS, `govulncheck` |
+| Go en CI | `1.27.x` (≥ 1.27.4) — les stdlib 1.27.1/1.27.2 avaient 7 CVE corrigées depuis |
+| Go local | 1.27.3 (Termux) : builds/tests OK, mais `govulncheck` local signalera encore la stdlib |
 | Sandbox | ⚠️ `--sandbox` (bubblewrap) implémenté, non testé sur Termux (bwrap absent) |
 | Secrets dans le dépôt | ✅ aucun (`.env`, `mcp.json` ignorés) |
 | Binaire | 8,4 Mio, `-ldflags="-s -w"`, aucune dépendance CGO |

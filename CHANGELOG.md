@@ -81,6 +81,16 @@ Correctifs issus de [AUDIT.md](AUDIT.md), suivis dans [PLAN_ACTION.md](PLAN_ACTI
 - **Scripts portables** : `tests/context.sh` et `tests/crash.sh` repartent du dépôt,
   `clean.sh` ajouté, `clean.cmd` pointe sur `%APPDATA%\ds-agent` (ERRATA-019, D10/D11).
 
+### Corrigé — CI (premier run réel)
+
+- Le premier run GitHub Actions a validé **7 jobs sur 8** (qualité `-race`, tests, e2e,
+  banc hostile, build Ubuntu/macOS/Windows).
+- `govulncheck` a révélé **7 vulnérabilités de la bibliothèque standard** de Go 1.27.1
+  (`net/http`, `crypto/x509`, `http2`), aucun défaut du code du projet.
+- La CI analyse et compile désormais avec `1.27.x` (≥ 1.27.4) ; la directive `go` du module
+  reste à `1.27.1` car la toolchain 1.27.4 n'existe pas pour `android/arm64` (Termux).
+  Voir ERRATA-109.
+
 ### Ajouté — sprint 5 (« confiance vérifiable »)
 
 - **CI GitHub Actions** : `gofmt` + `go vet`, tests `-race` (racine et `audit_api`),
