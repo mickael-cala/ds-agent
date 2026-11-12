@@ -20,6 +20,8 @@ publié sous forme de release binaire : les versions ci-dessous décrivent l'ét
   fuzzable), `FuzzTruncate` (invariant UTF-8 + borne) — 30 s cumulées en CI.
 - **`TestMain`** force `apiBase` sur un port fermé : plus aucun test ne peut appeler la vraie API.
 - Corrigé : `local_web_search` acceptait un `query` absent (payload vide envoyé au fournisseur).
+- **Corrigé (trouvé par le fuzzing)** : `truncate` pouvait renvoyer des octets non-UTF-8
+  (sortie binaire d'une commande) — assainissement U+FFFD avant coupe (ERRATA-025).
 - Corrigé : la règle `.gitignore` `ds-agent` (binaire) matchait **aussi** le répertoire
   `cmd/ds-agent/`, rendant invisible tout nouveau fichier du paquet. Désormais ancrée (`/ds-agent`).
 

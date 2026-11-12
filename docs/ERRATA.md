@@ -320,6 +320,17 @@ mort du processus, donc jamais périmé. No-op sous Windows (documenté).
 
 **Verrou.** `TestVerrouSession`.
 
+### ERRATA-025 — `truncate` renvoyait de l'UTF-8 invalide 🟡
+
+**Symptôme.** Une sortie de commande contenant des octets non-UTF-8 (binaire, mauvaise
+locale) était renvoyée telle quelle par `truncate` quand elle tenait sous la limite, malgré
+la promesse « coupe UTF-8 safe ». Trouvé par `FuzzTruncate` au premier run CI (entrée `\xc3`).
+
+**Correction.** `truncate` assainit la chaîne (`strings.ToValidUTF8`, remplacement par U+FFFD)
+avant de couper, uniquement si elle est invalide.
+
+**Verrou.** `FuzzTruncate` (graines invalides incluses), `TestTruncateRespecteUTF8`.
+
 ---
 
 ## 2. Défauts ouverts

@@ -221,6 +221,12 @@ func (a *Agent) approve(action string) bool {
 }
 
 func truncate(s string, m int) string {
+	// CORRIGÉ (trouvé par FuzzTruncate) : une sortie de commande peut contenir
+	// des octets non-UTF-8 (binaire, mauvaise locale). On l'assainit avant de
+	// couper, sinon la promesse « coupe UTF-8 safe » ne tient pas.
+	if !utf8.ValidString(s) {
+		s = strings.ToValidUTF8(s, "\uFFFD")
+	}
 	if len(s) <= m {
 		return s
 	}

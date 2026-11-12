@@ -60,7 +60,7 @@ func FuzzDecodeToolArguments(f *testing.F) {
 
 // T5 : troncature : jamais de sortie UTF-8 invalide, jamais plus de m + marqueur.
 func FuzzTruncate(f *testing.F) {
-	for _, seed := range []string{"aé€𝄞", "", "ascii", strings.Repeat("é", 50)} {
+	for _, seed := range []string{"aé€𝄞", "", "ascii", strings.Repeat("é", 50), "\xc3", "\xff\xfe"} {
 		f.Add(seed)
 	}
 	f.Fuzz(func(t *testing.T, s string) {
