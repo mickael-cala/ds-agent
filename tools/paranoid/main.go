@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Commercial
+// Copyright (C) 2025 les contributeurs de ds-agent
+
 // Serveur « paranoïaque » : un faux backend OpenAI/DeepSeek qui se comporte
 // aussi mal que possible, pour éprouver la robustesse de ds-agent.
 //

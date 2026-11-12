@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Commercial
+# Copyright (C) 2025 les contributeurs de ds-agent
+
 # Banc d'essai : ds-agent contre le serveur paranoïaque.
 set -u
 cd "$(dirname "$0")/.." || exit 1

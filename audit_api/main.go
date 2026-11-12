@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Commercial
+// Copyright (C) 2025 les contributeurs de ds-agent
+
 // audit_api — micro API d'audit.
 //
 // Routage : syntaxe Go 1.22 EXCLUSIVEMENT (la méthode fait partie du pattern).

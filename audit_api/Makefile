@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Commercial
+# Copyright (C) 2025 les contributeurs de ds-agent
+
 BIN   := audit
 ADDR  ?= 127.0.0.1:8100
 FLAGS := -ldflags="-s -w"

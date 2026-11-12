@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Commercial
+# Copyright (C) 2025 les contributeurs de ds-agent
+
 # Compaction de contexte : A/B sur un backend qui refuse au-delà de 300 000 octets.
 set -u
 cd ~/ds-agent || exit 1

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Commercial
+# Copyright (C) 2025 les contributeurs de ds-agent
+
 # Crash-test ciblé : borne de boucle, sortie monstrueuse, interruption (SIGINT).
 set -u
 cd ~/ds-agent || exit 1

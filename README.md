@@ -1,5 +1,9 @@
 # ds-agent
 
+[![Go](https://img.shields.io/badge/Go-%E2%89%A5%201.22-00ADD8)](https://go.dev)
+[![Licence](https://img.shields.io/badge/licence-AGPL--3.0%20%7C%20commercial-blue)](LICENSING.md)
+[![Statut](https://img.shields.io/badge/statut-v0.1%20exp%C3%A9rimental-orange)](STATUS.md)
+
 Agent de codage en terminal, écrit en Go, propulsé par l'API **DeepSeek**.
 Il boucle sur des *tool calls* : lire, écrire, patcher, exécuter du shell, chercher
 sur le web — et se brancher sur des serveurs **MCP** externes pour étendre son jeu d'outils.
@@ -12,6 +16,22 @@ Fichier principal : `main.go` (agent monolithique, ~1 200 lignes). Aucun framewo
 >> Exécuter "go test ./..." ? [y/N] : y
 ...
 ```
+
+---
+
+## Documentation
+
+| Doc | Contenu |
+|---|---|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | schéma du flux, découpage de `main.go`, décisions de conception |
+| [STATUS.md](STATUS.md) | état de santé, plateformes, dette technique, vérifications |
+| [ROADMAP.md](ROADMAP.md) | ce qui est fait, ce qui vient (v0.2 → v1.0), non-objectifs |
+| [ERRATA.md](ERRATA.md) | bugs corrigés (avec test de non-régression) et défauts ouverts |
+| [FAQ.md](FAQ.md) | questions fréquentes (installation, coût, MCP, sécurité) |
+| [CHANGELOG.md](CHANGELOG.md) | historique des versions |
+| [AGENTS.md](AGENTS.md) | consignes pour les agents de codage IA travaillant sur le dépôt |
+| [SECURITY.md](SECURITY.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | signalement, contributions, conduite |
+| [LICENSING.md](LICENSING.md) · [LICENSE](LICENSE) · [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md) | double licence AGPL-3.0 / commerciale |
 
 ---
 
@@ -205,8 +225,17 @@ Le sous-projet [`audit_api/`](audit_api/README.md) est une micro-API Go 1.22
 ├── tools/paranoid/         # faux backend DeepSeek (banc d'essai)
 ├── tests/                  # scénarios shell + PARANOID.md (résultats)
 ├── audit_api/              # micro-API Go (cible de test)
-├── ANALYSE_main.md         # analyse technique de main.go
-└── SECURITY.md / CONTRIBUTING.md
+├── LICENSE                 # AGPL-3.0 (texte canonique)
+├── README.md               # ce fichier
+├── ANALYSE_main.md         # analyse technique détaillée de main.go
+├── ARCHITECTURE.md         # flux interne & conception
+├── STATUS.md               # état du projet
+├── ROADMAP.md              # feuille de route
+├── ERRATA.md               # bugs corrigés / défauts connus
+├── AGENTS.md               # consignes pour agents IA
+├── FAQ.md · CHANGELOG.md
+├── SECURITY.md · CONTRIBUTING.md · CODE_OF_CONDUCT.md
+└── LICENSING.md · LICENSE-COMMERCIAL.md
 ```
 
 ## Dépannage
@@ -222,11 +251,24 @@ Le sous-projet [`audit_api/`](audit_api/README.md) est une micro-API Go 1.22
 
 ## Contribuer
 
-Les pull requests sont bienvenues — voir [CONTRIBUTING.md](CONTRIBUTING.md).
+Les pull requests sont bienvenues — voir [CONTRIBUTING.md](CONTRIBUTING.md) et le code de
+conduite [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Travaillez avec un agent IA ?
+Lisez [AGENTS.md](AGENTS.md). Questions récurrentes : [FAQ.md](FAQ.md).
+
 Signalez toute faille de sécurité via les canaux décrits dans [SECURITY.md](SECURITY.md),
-jamais dans une issue publique.
+jamais dans une issue publique. Défauts connus : [ERRATA.md](ERRATA.md).
 
-## Licence
+## Licence : AGPL-3.0 **ou** commerciale
 
-Aucune licence n'est encore déclarée pour ce dépôt : tous droits réservés par défaut.
-Ouvrez une issue si vous souhaitez un jour le réutiliser sous MIT / Apache-2.0.
+`ds-agent` est distribué sous **double licence**, au choix :
+
+- 🆓 **GNU AGPL v3.0** (`AGPL-3.0-only`) — voir [`LICENSE`](LICENSE) ; toute version
+  modifiée, y compris exposée en SaaS, doit rester libre et publiée.
+- 💼 **Licence commerciale** — pour un usage propriétaire, un produit fermé, du
+  marbre blanc / OEM, un SLA ou une indemnisation IP : voir
+  [`LICENSE-COMMERCIAL.md`](LICENSE-COMMERCIAL.md).
+
+Identifiant SPDX : `AGPL-3.0-only OR LicenseRef-Commercial`. Détail des cas d'usage et
+de la politique de contribution : [`LICENSING.md`](LICENSING.md).
+
+Copyright (C) 2025 les contributeurs de `ds-agent`.
