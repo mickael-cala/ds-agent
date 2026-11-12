@@ -104,6 +104,16 @@ Non : les processus enfants reçoivent un environnement filtré (`childEnv`), sa
 `DEEPSEEK_API_KEY`, `MCP_ROOT_SECRET` ni variables de type `*_TOKEN`. Les valeurs sensibles
 connues sont aussi caviardées (`[REDACTED]`) dans les sorties d'outils.
 
+**Où va le journal d'audit ?**
+`~/.config/ds-agent/audit.jsonl` (JSONL, `0600`, append-only) : une ligne par appel d'outil
+avec l'empreinte des arguments, la décision et le résultat. `DEEPSEEK_AUDIT=off` le désactive ;
+le fichier peut être supprimé à chaud.
+
+**Comment borner les coûts ?**
+`DEEPSEEK_MAX_ITERATIONS` (défaut 30) limite les boucles, `DEEPSEEK_MAX_TOKENS` plafonne la
+dépense estimée par session, `DEEPSEEK_BASH_TIMEOUT` borne les commandes. `/status` affiche
+la consommation courante.
+
 **Mes fichiers sont-ils sauvegardés avant modification ?**
 Si le répertoire est un dépôt git, oui : un commit `Auto-checkpoint: <fichier>` est créé
 avant chaque écriture/édition. Sans git, aucune sauvegarde (ERRATA-111).

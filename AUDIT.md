@@ -105,20 +105,20 @@ propagée aux outils web. Une réponse de 500 Mo suffit à tuer le processus.
 **Correctif** : factoriser un `doJSON(ctx, req) ([]byte, error)` borné à `maxAPIBody`,
 utilisé par les trois chemins HTTP.
 
-### D04 — Un timeout bash ne tue que le shell 🟠
+### D04 — Un timeout bash ne tue que le shell 🟠 — ✅ corrigé (sprint 3)
 `main.go:851` : `exec.CommandContext(tCtx, "sh", "-c", c)`. À l'expiration, Go tue `sh`,
 pas ses enfants. `go test ./...`, `npm install` ou une boucle `sleep` continuent en
 arrière-plan, en tenant le CPU et parfois le terminal. Aucun `cmd.WaitDelay`.
 **Correctif** : `SysProcAttr{Setpgid:true}` + `syscall.Kill(-pgid, SIGKILL)` sur timeout,
 `cmd.WaitDelay = 2 * time.Second`, et fermer les pipes de sortie.
 
-### D05 — `/clear` laisse un état fantôme 🟡
+### D05 — `/clear` laisse un état fantôme 🟡 — ✅ corrigé (sprint 3)
 `main.go:1204-1207` remet `history` à zéro mais conserve `omitted` (utilisé dans le prompt,
 `229-231`) : l'agent annonce « N messages omis » sur une session vide. Le fichier de session
 n'est pas supprimé non plus : un crash avant la prochaine sauvegarde ressuscite l'ancien contexte.
 **Correctif** : `a.omitted = 0`, `os.Remove(a.sessionPath)`, et vider aussi l'écho écran.
 
-### D06 — Erreurs silencieuses restantes 🟡
+### D06 — Erreurs silencieuses restantes 🟡 — ✅ corrigé (sprint 3, sauf `gitCheckpoint`)
 `sessionPath` (`1091` `MkdirAll` ignoré), `saveSession` (`1104` `json.Marshal` et
 `os.WriteFile` ignorés), `gitCheckpoint` (`949-953`, trois `.Run()` ignorés).
 Un échec de sauvegarde de session est indétectable : l'utilisateur perd son contexte sans
@@ -272,7 +272,7 @@ s'applique qu'aux outils de fichiers. Un modèle mal orienté peut donc lire `~/
 **Correctif** : renommer partout « répertoire de travail » ; proposer un mode
 `--sandbox` (bubblewrap/nsjail) et un garde-fou sur les commandes destructrices.
 
-### C09 — Aucun journal d'audit 🟠
+### C09 — Aucun journal d'audit 🟠 — ✅ corrigé (sprint 3)
 Rien n'est persisté : ni l'outil appelé, ni les arguments, ni la décision d'approbation,
 ni la sortie. Après incident (fichier supprimé, clé divulguée), il n'existe **aucune
 preuve**, seulement l'historique de session — que la compaction tronque et que `/clear` efface.
@@ -295,7 +295,7 @@ poliement, `924-927`).
 **Correctif** : documenter que ces deux outils dépendent d'une passerelle compatible ;
 sinon les implémenter localement avec liste blanche de schémas/domaines et refus des IP privées.
 
-### C12 — Déni de portefeuille 🟡
+### C12 — Déni de portefeuille 🟡 — ✅ corrigé (sprint 3)
 `/rabbithole` porte la boucle à 999 itérations (`435-438`), `/matrix` relance indéfiniment
 les corrections, `/godmode` supprime les confirmations, et chaque tour renvoie tout
 l'historique. Un modèle qui boucle coûte de l'argent réel, sans plafond ni alerte.
@@ -359,7 +359,7 @@ L'utilisateur croit à un annulation globale.
 dernier checkpoint — `/undo` pour revenir ») + commande `/undo` réelle basée sur les
 checkpoints git.
 
-### U05 — Pas d'état visible 🟡
+### U05 — Pas d'état visible 🟡 — ✅ corrigé (sprint 3)
 Aucun `/status`. Le prompt affiche `[deepseek-chat] Vous >` (`305`) sans indiquer :
 thinking on/off, modes actifs, budget restant, nombre d'outils MCP, session reprise,
 `omitted`. L'utilisateur doit se souvenir de ce qu'il a activé — et `/help` ne dit pas ce
@@ -400,7 +400,7 @@ autoriser cet outil pendant cette session ». La réponse naturelle de l'utilisa
 **Correctif** : `a` = autoriser pour la session, par outil ; mémoire en fin de session ;
 `/auto` affiché comme mode dégradé, pas comme confort.
 
-### U11 — Onboarding silencieux 🟡
+### U11 — Onboarding silencieux 🟡 — ✅ corrigé (sprint 3)
 Au démarrage, `main` n'affiche que modèle + OS (`322-323`). Si `mcp.json` est absent,
 `initMCPServers` retourne sans un mot (`358-360`) : l'utilisateur ne sait pas s'il a bien
 configuré son serveur MCP. Aucun rappel de `DEEPSEEK_CONTEXT_TOKENS` ni de la session reprise.

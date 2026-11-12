@@ -47,12 +47,34 @@ Correctifs issus de [AUDIT.md](AUDIT.md), suivis dans [PLAN_ACTION.md](PLAN_ACTI
 - Écriture atomique également pour les fichiers modifiés par l'agent : plus de fichier
   tronqué si le processus meurt pendant l'écriture.
 
+### Corrigé — sprint 3 (« exploitation & traçabilité »)
+
+- **Journal d'audit JSONL** (`~/.config/ds-agent/audit.jsonl`, `0600`) : horodatage, session,
+  outil, empreinte SHA-256 tronquée des arguments (jamais en clair), décision
+  (`auto`/`godmode`/`accepte`/`refuse`/`sans`), résultat, taille (C09, ERRATA-018).
+  Désactivable par `DEEPSEEK_AUDIT=off`.
+- **Timeout bash** : exécution dans un groupe de processus dédié (`Setpgid`), tué en entier
+  au dépassement ; `WaitDelay` de 2 s ; délai réglable par `DEEPSEEK_BASH_TIMEOUT`
+  (ERRATA-017, D04).
+- **`/clear` complet** : compteurs (`omitted`, `restored`, `spentTokens`) remis à zéro et
+  fichier de session supprimé ; les échecs de sauvegarde sont signalés sur stderr
+  (ERRATA-018, D05/D06).
+- **`/status`** : modèle, thinking, modes actifs, nombre d'outils natifs/MCP, contexte
+  utilisé, dépense estimée, plafonds, session, chemin du journal (U05).
+- **Démarrage explicite** : répertoire, modèle, OS/arch, outils natifs + MCP, session
+  reprise, emplacement du journal (U11).
+- **Plafonds d'exploitation** : `DEEPSEEK_MAX_ITERATIONS` (défaut 30) et
+  `DEEPSEEK_MAX_TOKENS` (dépense estimée cumulée, 0 = illimité) — un `/godmode` + `/matrix`
+  ne peut plus tourner sans limite (C12).
+
 ### Tests
 
 - +6 tests (sprint 1) : `TestSanitizeTerm`, `TestDiffHunk`, `TestDiffHunkNouveauFichier`,
   `TestDiffHunkTronque`, `TestSpinnerPauseResume`, `TestPostDeepSeekToolBorne`.
 - +14 tests (sprint 2) : environnement enfant, caviardage, chemins sensibles/protégés,
-  confirmations, écriture atomique, sessions. Total : **25 tests**.
+  confirmations, écriture atomique, sessions.
+- +6 tests (sprint 3) : audit JSONL, timeout/groupe de processus, `/clear`, `/status`,
+  plafond d'itérations. Total : **31 tests**.
 
 ## [0.1.0] — 2026-11-12
 

@@ -110,6 +110,10 @@ Tout passe par des variables d'environnement :
 | `DEEPSEEK_MODEL` | `deepseek-chat` | Modèle utilisé au démarrage (`/model` pour changer à chaud) |
 | `DEEPSEEK_API_BASE` | `https://api.deepseek.com` | Base HTTP (proxy, mock, serveur de test) |
 | `DEEPSEEK_CONTEXT_TOKENS` | `60000` | Fenêtre de contexte déclarée, pilote la compaction |
+| `DEEPSEEK_MAX_ITERATIONS` | `30` | Itérations max par tâche (999 en `/rabbithole`) |
+| `DEEPSEEK_MAX_TOKENS` | `0` | Plafond de tokens envoyés par session (0 = illimité) |
+| `DEEPSEEK_BASH_TIMEOUT` | `120` | Délai max d'un `local_bash`, en secondes |
+| `DEEPSEEK_AUDIT` | `on` | `off` désactive le journal d'audit |
 | `MCP_ROOT_SECRET` | — | Secret exigé par le serveur MCP pour `change_root` |
 | `MCP_ROOT` | répertoire courant | Injecté dans les serveurs MCP au démarrage |
 
@@ -130,7 +134,8 @@ Commandes du REPL :
 | `/model <nom>` | Change le modèle API |
 | `/think on\|off` | Active/désactive le Chain-of-Thought |
 | `/auto` | Auto-approbation (plus de `[y/N]`) |
-| `/clear` | Purge l'historique de la session |
+| `/clear` | Purge l'historique, les compteurs et le fichier de session |
+| `/status` | Modèle, modes, outils, budget, dépense, session, journal |
 | `/exit`, `/quit` | Ferme les serveurs MCP et quitte |
 
 ### Les modes du chaos (cumulables)
@@ -195,6 +200,10 @@ toute collision avec les outils natifs. Les erreurs de démarrage / `Initialize`
 - **Fichiers sensibles** : lecture de `.env*`, clés privées, `.ssh/`, `.aws/` soumise à
   confirmation ; écriture de `mcp.json`, `.gitignore`, `.env*`, `.git/**` refusée.
 - **Sessions** : hors du dossier temporaire partagé, permissions `0600`, écriture atomique.
+- **Journal d'audit** : `~/.config/ds-agent/audit.jsonl` (outil, empreinte des arguments,
+  décision, résultat, taille), `0600`, append-only, désactivable via `DEEPSEEK_AUDIT=off`.
+- **Plafonds** : `DEEPSEEK_MAX_ITERATIONS` et `DEEPSEEK_MAX_TOKENS` bornent les boucles
+  auto-approuvées.
 - **Anti-évasion** : `safePath` refuse `..` et les liens symboliques sortant du bac à sable.
 - **Checkpoints git** : commit automatique du fichier avant modification, rollback manuel facile.
 - **Rollback d'historique** : en cas d'erreur ou d'annulation, le dernier message utilisateur est retiré.
@@ -229,6 +238,8 @@ Le sous-projet [`audit_api/`](audit_api/README.md) est une micro-API Go 1.22
 ```
 .
 ├── main.go                 # agent complet (config, MCP, boucle LLM, outils, REPL)
+├── audit.go                # journal d'audit JSONL
+├── proc_unix.go / proc_windows.go  # groupe de processus (timeout bash)
 ├── compact_test.go         # tests budget de tokens / compaction
 ├── go.mod / go.sum
 ├── mcp.json.example        # modèle de configuration MCP (mcp.json est ignoré)

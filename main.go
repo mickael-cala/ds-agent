@@ -36,12 +36,13 @@ import (
 // ==========================================
 
 const (
-	apiBaseDefault = "https://api.deepseek.com"
-	apiKeyEnv      = "DEEPSEEK_API_KEY"
-	maxToolOut     = 60000
-	defaultBashT   = 120
-	maxAttempts    = 4
-	maxAPIBody     = 32 << 20 // 32 Mo
+	apiBaseDefault       = "https://api.deepseek.com"
+	apiKeyEnv            = "DEEPSEEK_API_KEY"
+	maxToolOut           = 60000
+	defaultBashT         = 120
+	maxAttempts          = 4
+	defaultMaxIterations = 30
+	maxAPIBody           = 32 << 20 // 32 Mo
 )
 
 // apiBase est surchargeable (serveur de test « paranoïaque », proxy local, mock...).
@@ -178,13 +179,21 @@ type Agent struct {
 	contextLimit int // fenêtre du modèle en tokens (DEEPSEEK_CONTEXT_TOKENS)
 	omitted      int // messages omis depuis le début de la session
 
+	// Garde-fous d'exploitation
+	maxIterations    int // DEEPSEEK_MAX_ITERATIONS (0 = défaut)
+	maxSessionTokens int // DEEPSEEK_MAX_TOKENS (0 = pas de plafond)
+	spentTokens      int // total estimé envoyé depuis le démarrage
+	bashTimeout      int // DEEPSEEK_BASH_TIMEOUT en secondes
+	restored         int // messages rechargés au démarrage
+
 	// Protocole EMP Agent Smith (Ctrl+C)
 	cancelMu   sync.Mutex
 	cancelFunc context.CancelFunc
 
 	// Confiance : secrets à caviarder, interactions utilisateur dédiées
-	secrets  []string
-	prompter Prompter
+	secrets      []string
+	prompter     Prompter
+	lastDecision string // décision de la dernière confirmation (pour l'audit)
 
 	mcpServers []MCPServerInstance
 }
@@ -271,15 +280,18 @@ func main() {
 
 	wd, _ := os.Getwd()
 	a := &Agent{
-		apiKey:       apiKey,
-		model:        defaultModel(),
-		thinking:     true,
-		effort:       "high",
-		workDir:      wd,
-		contextLimit: envInt("DEEPSEEK_CONTEXT_TOKENS", defaultContextTokens),
-		scanner:      bufio.NewScanner(os.Stdin),
-		http:         &http.Client{Timeout: 300 * time.Second},
-		spinnerChan:  make(chan bool),
+		apiKey:           apiKey,
+		model:            defaultModel(),
+		thinking:         true,
+		effort:           "high",
+		workDir:          wd,
+		contextLimit:     envInt("DEEPSEEK_CONTEXT_TOKENS", defaultContextTokens),
+		maxIterations:    envInt("DEEPSEEK_MAX_ITERATIONS", defaultMaxIterations),
+		maxSessionTokens: envInt("DEEPSEEK_MAX_TOKENS", 0),
+		bashTimeout:      envInt("DEEPSEEK_BASH_TIMEOUT", defaultBashT),
+		scanner:          bufio.NewScanner(os.Stdin),
+		http:             &http.Client{Timeout: 300 * time.Second},
+		spinnerChan:      make(chan bool),
 	}
 	a.scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024)
 	a.prompter = newPrompter(a.scanner)
@@ -308,8 +320,17 @@ func main() {
 		}
 	}()
 
-	fmt.Printf("=== DeepSeek Agent (Dir: %s) ===\n", wd)
-	fmt.Printf("Modèle: %s | OS: %s\nTapez /help pour les commandes.\n", a.model, runtime.GOOS)
+	mcpTools := 0
+	for _, srv := range a.mcpServers {
+		mcpTools += len(srv.Tools)
+	}
+	fmt.Printf("=== ds-agent (dir: %s) ===\n", wd)
+	fmt.Printf("Modèle %s | %s/%s | %d outils natifs + %d MCP (%d serveurs)\n",
+		a.model, runtime.GOOS, runtime.GOARCH, len(a.getTools())-mcpTools, mcpTools, len(a.mcpServers))
+	if a.restored > 0 {
+		fmt.Printf("Session reprise : %d messages (%s)\n", a.restored, a.sessionPath)
+	}
+	fmt.Printf("Audit : %s | /help, /status\n", auditPath())
 
 	for {
 		fmt.Printf("\n[%s] Vous > ", a.model)
@@ -447,7 +468,10 @@ func (a *Agent) runLoop(ctx context.Context) (string, error) {
 
 	loopCount := 0
 	consecutiveErrors := 0
-	maxLoops := 30
+	maxLoops := defaultMaxIterations
+	if a.maxIterations > 0 {
+		maxLoops = a.maxIterations
+	}
 	if a.rabbithole {
 		maxLoops = 999 // Mode Rabbithole 🐇
 	}
@@ -457,6 +481,12 @@ func (a *Agent) runLoop(ctx context.Context) (string, error) {
 		if loopCount > maxLoops {
 			a.stopSpinner()
 			return "", fmt.Errorf("limite de sécurité atteinte (%d itérations)", maxLoops)
+		}
+		// Plafond de dépense (C12) : on compte ce qui est envoyé, pas ce qui est utile.
+		if a.maxSessionTokens > 0 && a.spentTokens > a.maxSessionTokens {
+			a.stopSpinner()
+			return "", fmt.Errorf("budget de session dépassé (~%d tokens envoyés, plafond DEEPSEEK_MAX_TOKENS=%d)",
+				a.spentTokens, a.maxSessionTokens)
 		}
 
 		// CORRIGÉ : la compaction doit tourner à CHAQUE tour d'outil, pas une
@@ -502,6 +532,18 @@ func (a *Agent) runLoop(ctx context.Context) (string, error) {
 			} else {
 				consecutiveErrors = 0
 			}
+			// Journal d'audit (C09) : outil, empreinte des arguments, décision, résultat.
+			statut := "ok"
+			if err != nil {
+				statut = "error"
+			} else if result == "Annulé" {
+				statut = "refuse"
+			}
+			decision := a.lastDecision
+			if decision == "" {
+				decision = "sans"
+			}
+			a.audit(tc.Function.Name, tc.Function.Arguments, decision, statut, len(result))
 			a.history = append(a.history, Message{Role: "tool", ToolCallID: tc.ID, Content: result})
 		}
 
@@ -524,6 +566,8 @@ func (a *Agent) callChat(ctx context.Context, messages []Message) (*ChatResponse
 	if err != nil {
 		return nil, fmt.Errorf("encodage requête: %w", err)
 	}
+	// Dépense estimée : le corps de requête contient messages ET schémas d'outils.
+	a.spentTokens += estTokens(string(body))
 
 	// ✅ AJOUT : retry/backoff (429, 5xx, réseau, JSON tronqué) avec Retry-After.
 	var lastErr error
@@ -777,6 +821,7 @@ func getStringArg(args map[string]any, key string) (string, error) {
 }
 
 func (a *Agent) executeTool(ctx context.Context, tc ToolCall) (string, error) {
+	a.lastDecision = "sans" // sera fixé par approve() si une confirmation a lieu
 	var args map[string]any
 	if raw := strings.TrimSpace(tc.Function.Arguments); raw != "" {
 		if err := json.Unmarshal([]byte(raw), &args); err != nil {
@@ -971,7 +1016,11 @@ func (a *Agent) toolBash(ctx context.Context, args map[string]any) (string, erro
 		return "Annulé", nil
 	}
 
-	tCtx, cancel := context.WithTimeout(ctx, defaultBashT*time.Second)
+	limit := a.bashTimeout
+	if limit <= 0 {
+		limit = defaultBashT
+	}
+	tCtx, cancel := context.WithTimeout(ctx, time.Duration(limit)*time.Second)
 	defer cancel()
 
 	sh, fl := "sh", "-c"
@@ -988,9 +1037,11 @@ func (a *Agent) toolBash(ctx context.Context, args map[string]any) (string, erro
 	exitCode := 0
 	if err != nil {
 		if tCtx.Err() == context.DeadlineExceeded {
-			return truncate(fmt.Sprintf("Code: -1\nOut:\n%s\n[TIMEOUT 120s]", out.String()), maxToolOut), nil
+			killProcessGroup(cmd) // CommandContext n'a tué que le `sh` intermédiaire
+			return truncate(fmt.Sprintf("Code: -1\nOut:\n%s\n[TIMEOUT %ds — groupe de processus tué]", out.String(), limit), maxToolOut), nil
 		}
 		if ctx.Err() == context.Canceled {
+			killProcessGroup(cmd)
 			return truncate(fmt.Sprintf("Code: -1\nOut:\n%s\n[INTERROMPU PAR AGENT SMITH]", out.String()), maxToolOut), nil
 		}
 		if ee, ok := err.(*exec.ExitError); ok {
@@ -1175,6 +1226,11 @@ func (p *ttyPrompter) Close() {
 
 func (a *Agent) approve(action string) bool {
 	if a.godmode || a.autoApprove {
+		if a.godmode {
+			a.lastDecision = "godmode"
+		} else {
+			a.lastDecision = "auto"
+		}
 		return true
 	}
 	if a.prompter == nil {
@@ -1187,9 +1243,15 @@ func (a *Agent) approve(action string) bool {
 	ans, ok := a.prompter.Ask(">> " + sanitizeTerm(action) + " ? [y/N] : ")
 	if !ok {
 		fmt.Println("\n[refus] aucune réponse (entrée non interactive) : action refusée.")
+		a.lastDecision = "refuse"
 		return false
 	}
 	ans = strings.ToLower(strings.TrimSpace(ans))
+	if ans == "y" || ans == "yes" || ans == "o" || ans == "oui" {
+		a.lastDecision = "accepte"
+	} else {
+		a.lastDecision = "refuse"
+	}
 	// CORRIGÉ : défaut = NON (Entrée seule ne valide plus bash/écriture/MCP).
 	return ans == "y" || ans == "yes" || ans == "o" || ans == "oui"
 }
@@ -1455,7 +1517,7 @@ func (a *Agent) compactHistory() {
 // (audit C06) : XDG_CONFIG_HOME, ou ~/.config, sinon repli sur $TMPDIR.
 func sessionDir() string {
 	if d, err := os.UserConfigDir(); err == nil && d != "" {
-		return filepath.Join(d, "ds-agent", "sessions")
+		return filepath.Join(stateDir(), "sessions")
 	}
 	return filepath.Join(os.TempDir(), "ds-agent-sessions")
 }
@@ -1533,7 +1595,9 @@ func (a *Agent) loadSession() {
 		if err := json.Unmarshal(data, &a.history); err != nil {
 			fmt.Printf("[session] ignorée (JSON corrompu) : %v\n", err)
 			a.history = nil
+			return
 		}
+		a.restored = len(a.history)
 	}
 }
 
@@ -1656,6 +1720,49 @@ func (a *Agent) resumeSpinner() {
 	}
 }
 
+// printStatus affiche l'état réel de la session (U05) : sans ça, l'utilisateur
+// doit se souvenir de ce qu'il a activé et de ce qu'il reste comme budget.
+func (a *Agent) printStatus() {
+	used := 0
+	for i := 1; i < len(a.history); i++ {
+		used += msgTokens(a.history[i])
+	}
+	var modes []string
+	for _, m := range []struct {
+		nom string
+		on  bool
+	}{{"auto", a.autoApprove}, {"godmode", a.godmode}, {"mandalorian", a.speedrun},
+		{"bladerunner", a.paranoid}, {"terminator", a.terminator}, {"matrix", a.bruteforce},
+		{"rabbithole", a.rabbithole}} {
+		if m.on {
+			modes = append(modes, m.nom)
+		}
+	}
+	if len(modes) == 0 {
+		modes = []string{"aucun"}
+	}
+	mcpTools := 0
+	for _, srv := range a.mcpServers {
+		mcpTools += len(srv.Tools)
+	}
+	fmt.Println("=== STATUS ===")
+	fmt.Printf("modèle      : %s (thinking %v, effort %q)\n", a.model, a.thinking, a.effort)
+	fmt.Printf("modes       : %s\n", strings.Join(modes, " "))
+	fmt.Printf("outils      : %d natifs + %d MCP (%d serveurs)\n",
+		len(a.getTools())-mcpTools, mcpTools, len(a.mcpServers))
+	fmt.Printf("contexte    : ~%d / %d tokens (%d messages, %d omis)\n",
+		used, a.tokenBudget(), len(a.history), a.omitted)
+	if a.maxSessionTokens > 0 {
+		fmt.Printf("dépense     : ~%d / %d tokens (plafond atteint : %v)\n",
+			a.spentTokens, a.maxSessionTokens, a.spentTokens > a.maxSessionTokens)
+	} else {
+		fmt.Printf("dépense     : ~%d tokens (aucun plafond : DEEPSEEK_MAX_TOKENS)\n", a.spentTokens)
+	}
+	fmt.Printf("itérations  : %d max par tâche (%d en /rabbithole)\n", a.maxIterations, 999)
+	fmt.Printf("session     : %s (%d messages restaurés)\n", a.sessionPath, a.restored)
+	fmt.Printf("audit       : %s\n", auditPath())
+}
+
 func (a *Agent) handleCommand(in string) {
 	p := strings.Fields(in)
 	switch p[0] {
@@ -1664,7 +1771,14 @@ func (a *Agent) handleCommand(in string) {
 		os.Exit(0)
 	case "/clear":
 		a.history = []Message{}
-		fmt.Println("Contexte purgé.")
+		a.omitted, a.restored, a.spentTokens = 0, 0, 0
+		if err := os.Remove(a.sessionPath); err != nil && !os.IsNotExist(err) {
+			fmt.Printf("Contexte purgé (fichier de session non supprimé : %v).\n", err)
+		} else {
+			fmt.Println("Contexte purgé : historique, compteurs et fichier de session remis à zéro.")
+		}
+	case "/status":
+		a.printStatus()
 	case "/model":
 		if len(p) > 1 {
 			a.model = p[1]
@@ -1729,6 +1843,7 @@ func (a *Agent) handleCommand(in string) {
 		fmt.Println("  /think on|off  : Activer le Chain of Thought (R1)")
 		fmt.Println("  /clear         : Efface la session actuelle")
 		fmt.Println("  /auto          : Auto-approbation pacifique (silencieux)")
+		fmt.Println("  /status        : Modèle, modes, outils, budget, session, audit")
 		fmt.Println("\n=== LES MODES DU CHAOS (Cumulables) ===")
 		fmt.Println("  /mandalorian🛡️ : Interdit au modèle de parler, il exécute la tâche en silence.")
 		fmt.Println("  /bladerunner🦄 : Pousse l'agent à auditer la sécurité et traquer les bugs.")

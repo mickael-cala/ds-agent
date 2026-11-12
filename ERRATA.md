@@ -187,6 +187,30 @@ un motif explicite ; la lecture des fichiers sensibles exige désormais une conf
 **Verrou.** `TestProtectedWritePaths`, `TestEcritureProtegeeRefusee`,
 `TestSensitivePaths`, `TestLectureSensibleDemandeConfirmation`.
 
+### ERRATA-017 — Un timeout bash laissait les petits-enfants vivants 🟠
+
+**Symptôme.** Après un dépassement de délai, `go test`, `npm install` ou une boucle `sleep`
+continuaient en arrière-plan ; le shell n'était pas rendu.
+
+**Cause.** `exec.CommandContext` ne tue que le processus direct (`sh -c`), pas son groupe ;
+aucun `WaitDelay`.
+
+**Correction.** `setProcessGroup` (`Setpgid`) + `killProcessGroup(-pgid, SIGKILL)` sur timeout
+et sur annulation, `cmd.WaitDelay = 2s`, délai configurable (`DEEPSEEK_BASH_TIMEOUT`).
+Sous Windows, seul le processus direct est tué (limitation documentée).
+
+**Verrou.** `TestBashKillGroup`.
+
+### ERRATA-018 — `/clear` laissait l'état fantôme et l'échec de sauvegarde était muet 🟡
+
+**Symptôme.** Après `/clear`, l'agent annonçait encore « N messages omis » ; le fichier de
+session restait sur disque ; un échec d'écriture de session ne produisait aucun message.
+
+**Correction.** `/clear` remet à zéro `omitted`, `restored`, `spentTokens` et supprime le
+fichier de session ; `saveSession` écrit de façon atomique et signale ses échecs sur stderr.
+
+**Verrou.** `TestClearSession`, `TestWriteFileAtomic`.
+
 ---
 
 ## 2. Défauts ouverts

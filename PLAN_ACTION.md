@@ -17,7 +17,7 @@ Règles du jeu :
 |---|---|---|---|---|
 | 1 | Arrêter de mentir à l'opérateur | 5 | ✅ fait | `2cf99df` |
 | 2 | Frontières de confiance | 5 | ✅ fait | `5c1b46e` |
-| 3 | Exploitation & traçabilité | 5 | ⬜ à faire | — |
+| 3 | Exploitation & traçabilité | 5 | ✅ fait | `5b713f3` |
 | 4 | Confort & pilotage | 5 | ⬜ à faire | — |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
@@ -52,11 +52,11 @@ Objectif : un process enfant, un fichier sensible ou un fichier de config ne doi
 
 | # | Item | Réf. | Test / preuve | Statut |
 |---|---|---|---|---|
-| 3.1 | Journal d'audit JSONL append-only (outil, args hachés, décision, bytes) | C09 | `TestAuditLog` | ⬜ |
-| 3.2 | Timeout bash : groupe de processus tué, `WaitDelay` | D04 | `TestBashKillGroup` | ⬜ |
-| 3.3 | `/clear` complet (compteur, fichier de session) + erreurs de sauvegarde signalées | D05, D06 | `TestClearSession` | ⬜ |
-| 3.4 | `/status` (modèle, modes, outils, budget, session) + onboarding au démarrage | U05, U11 | manuel | ⬜ |
-| 3.5 | Plafonds de coût (`--max-iterations`, alerte budget) | C12 | `TestMaxIterations` | ⬜ |
+| 3.1 | Journal d'audit JSONL append-only (outil, args hachés, décision, bytes) | C09 | `TestAuditLog` | ✅ |
+| 3.2 | Timeout bash : groupe de processus tué, `WaitDelay` | D04 | `TestBashKillGroup` | ✅ |
+| 3.3 | `/clear` complet (compteur, fichier de session) + erreurs de sauvegarde signalées | D05, D06 | `TestClearSession` | ✅ |
+| 3.4 | `/status` (modèle, modes, outils, budget, session) + onboarding au démarrage | U05, U11 | manuel | ✅ |
+| 3.5 | Plafonds de coût (`--max-iterations`, alerte budget) | C12 | `TestMaxIterations` | ✅ |
 
 ## Sprint 4 — « confort & pilotage »
 

@@ -49,7 +49,9 @@ Pour tester sans réseau : `DEEPSEEK_API_BASE=http://127.0.0.1:PORT` + `tools/pa
    `sanitizeTerm()`/`snippet()`, ne jamais écrire un fichier sans `writeFileAtomic()`.
 10. **Chemins interdits** : `mcp.json`, `.git/**`, `.env*`, `.gitignore` et les fichiers de
    clés sont refusés à l'écriture (`protectedWriteReason`) ; leur lecture exige `approve`.
-11. **Licence** : tout nouveau fichier source commence par
+11. **Traçabilité** : toute action d'outil passe par `a.audit(...)` (jamais d'arguments en
+   clair, seulement leur empreinte). Ne pas contourner le journal dans un nouvel outil.
+12. **Licence** : tout nouveau fichier source commence par
    `// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Commercial`.
    Ne pas modifier `LICENSE` (texte AGPL canonique) ni retirer cette double licence.
 

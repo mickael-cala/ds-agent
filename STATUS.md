@@ -9,7 +9,7 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 | Indicateur | État |
 |---|---|
 | Build | ✅ `go build .` sans warning |
-| Tests unitaires | ✅ 25/25 (`go test ./...`, après sprint 2) |
+| Tests unitaires | ✅ 31/31 (`go test ./...`, après sprint 3) |
 | Sous-projet `audit_api` | ✅ 4/4 (`cd audit_api && go test ./...`) |
 | Banc hostile | ✅ 16 scénarios, 0 échec critique (`tests/paranoid.sh`) |
 | `gofmt` | ✅ aucun fichier à reformater |
@@ -30,6 +30,10 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 - Environnement enfant filtré (ni clé API ni jeton) et secrets caviardés dans les sorties.
 - Confirmations lues sur `/dev/tty` : plus de lignes volées au REPL, `Ctrl+C` interrompt.
 - Écriture refusée sur `mcp.json`, `.git/**`, `.env`, clés privées ; lecture confirmée.
+- Journal d'audit JSONL (`~/.config/ds-agent/audit.jsonl`) : outil, empreinte des arguments,
+  décision, résultat, taille — désactivable par `DEEPSEEK_AUDIT=off`.
+- Timeout bash : groupe de processus tué (plus de petits-enfants orphelins).
+- Plafonds : itérations par tâche et tokens par session.
 - Compilation Windows (`build_and_run.cmd` fourni, `cmd /c` pour `local_bash`).
 - Robustesse réseau : 429, 502, 500 itératif, corps HTML, JSON tronqué, UTF-8 invalide,
   corps de 40 Mo (RAM stable), SSE rejeté proprement.
@@ -44,6 +48,7 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 | D4 | Sessions en clair dans `~/.config` (chemin corrigé, contenu non chiffré) | fuite de code/historique sur poste partagé | ERRATA-103 |
 | D5 | `audit_api/` est un module Go séparé | non couvert par `go test ./...` racine | ROADMAP v0.2 |
 | D6 | Un seul `SIGINT` géré, pas de `SIGTERM` | arrêt sale via `kill`/systemd | ERRATA-102 |
+| D9 | Journal d'audit non borné en taille | croissance lente de `audit.jsonl` | C09, ROADMAP v0.3 |
 | D7 | Tests shell non portables sous Windows | couverture réduite sur cette plateforme | tests/*.sh |
 | D8 | `go.mod` déclare `go 1.27.1` | toolchains antérieures refusées | ERRATA-109 |
 

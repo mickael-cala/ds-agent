@@ -50,6 +50,7 @@ Le fichier est volontairement monolithique mais découpé en 10 sections numéro
 | 8 | Natifs web | `toolWebSearch`, `toolWebFetch`, `postDeepSeekTool` |
 | 9 | Sécurité & sessions | `safePath`, `gitCheckpoint`, `approve`/`Prompter`, budget (`estTokens`, `tokenBudget`), `compactHistory`, `load/saveSession` |
 | 9.1 | Frontières de confiance | `childEnv`, `collectSecrets`/`redact`, `isSensitivePath`, `protectedWriteReason`, `writeFileAtomic`, `secureMkdirAll` |
+| — | Traçabilité | `audit.go` (JSONL append-only), `printStatus` (`/status`) |
 | 10 | Commandes & spinner | `startSpinner`/`stopSpinner`/`pauseSpinner`, `handleCommand` (`/help`, modes du chaos) |
 | — | Affichage sûr | `sanitizeTerm` (C0/C1/`ESC`), `diffHunk`/`printDiff` (aperçu avant écriture) |
 
@@ -88,6 +89,8 @@ Le fichier est volontairement monolithique mais découpé en 10 sections numéro
   de tester la robustesse réseau sans réseau.
 - **`audit_api/`** : module Go séparé, micro-API HTTP Go 1.22 (routage par méthode),
   sert de cible de build/test indépendante.
+- **`proc_unix.go` / `proc_windows.go`** : isolation de la commande bash dans un groupe de
+  processus, pour que le timeout emporte les petits-enfants.
 - **`tests/*.sh`** : orchestration des bancs (hostile, compaction A/B, coupures).
 
 ## Points d'extension
