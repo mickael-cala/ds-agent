@@ -24,11 +24,29 @@ cases sont cochées : il est fini quand son critère est vérifié en CI.
 | v0.6 | Contexte & gros dépôts | ⬜ |
 | v1.0 | Stabilisation (API figée, packaging, SLO) | ⬜ |
 
+## État actuel (v0.2.0, 2026-11-12)
+
+| Indicateur | Valeur |
+|---|---|
+| Tests unitaires | ✅ 57/57 (`go test ./...`) |
+| Couverture | ⚠️ 55,9 % (objectif v0.3 : ≥ 65 %, `T1`) |
+| Banc hostile | ✅ 16 scénarios, 0 échec critique |
+| Bout-en-bout | ✅ 2 scénarios (binaire réel + mock) |
+| CI | ✅ `gofmt`, `vet`, `check-secrets`, `-race`, e2e, `govulncheck`, build 3 OS |
+| Binaires | 5 plateformes + `SHA256SUMS` sur la page Releases |
+| Dépendances | 1 directe (`mcp-go`), binaires statiques, sans CGO |
+| Plateformes vérifiées | Termux/android-arm64 (dev), Linux, macOS, Windows (build CI) |
+| Contraintes | `-race` absent sur `android/arm64` ; `go.mod` figé à `1.27.1` (pas de toolchain 1.27.4 pour Termux) ; `--sandbox` non testé sur une vraie machine |
+
+Dettes connues, toutes rattachées à un jalon : monolithe `main.go` (`v0.3 B1–B4`),
+couverture (`v0.3 T1–T5`), injection de prompt et réseau (`v0.4`), fiabilité d'édition
+(`v0.5`), contexte (`v0.6`), dérive documentaire (`v0.3 D2–D4`).
+
 ---
 
 ## Les 6 constats d'audit externe → où ils sont traités
 
-L'audit du 2026-11-12 (voir [AUDIT.md](AUDIT.md)) a relevé six faiblesses de fond. Voici
+L'audit du 2026-11-12 (voir [AUDIT.md](docs/AUDIT.md)) a relevé six faiblesses de fond. Voici
 leur traduction en jalons, dans l'ordre où elles se traitent (les enablers d'abord).
 
 | # | Constat | Traité en | Items |
@@ -78,13 +96,14 @@ v0.4→v0.6 empilent des fonctionnalités sur un socle qu'on ne sait pas tester.
 
 ### Documentation (`D`)
 
-- ⬜ `D1` Consolider : `README` (usage), `ERRATA`, `ROADMAP`, `SECURITY`/`THREAT_MODEL`,
-  `AGENTS` comme sources de vérité ; `FAQ`/`CHANGELOG` conservés ; fusionner le reste
+- ✅ `D1` Consolidé : 9 `.md` à la racine ; `FAQ` → `README`, `CODE_OF_CONDUCT` et
+  `PUBLISHING` → `CONTRIBUTING`, `LICENSE-COMMERCIAL` → `LICENSING`, `STATUS` → `ROADMAP`,
+  `ANALYSE_main` supprimé, `AUDIT`/`PLAN_ACTION` archivés dans `docs/`
 - ⬜ `D2` `scripts/check-docs.sh` : liens `.md` valides, compteurs de tests alignés sur
   `go test -json`, hashs de `PLAN_ACTION` existants — exécuté en CI
 - ⬜ `D3` Retirer les numéros de ligne des docs d'analyse (ou les générer)
 - ⬜ `D4` `PLAN_ACTION.md` : arrêter d'y stocker des hashs (référencer les titres de commit)
-- **Critère de sortie** : `scripts/check-docs.sh` vert en CI, ≤ 8 fichiers `.md` à la racine.
+- **Critère de sortie** : `scripts/check-docs.sh` vert en CI, ≤ 9 fichiers `.md` à la racine.
 
 ---
 
@@ -185,5 +204,5 @@ C'est le jalon qui transforme « parfois correct » en « utilisable au quotidie
 
 Une case = une PR, annoncée en issue avec le titre de l'item. Les propositions de
 réordonnancement sont bienvenues si elles s'appuient sur un cas d'usage réel et un critère
-de sortie mesurable. Voir [CONTRIBUTING.md](CONTRIBUTING.md) et [PLAN_ACTION.md](PLAN_ACTION.md)
+de sortie mesurable. Voir [CONTRIBUTING.md](CONTRIBUTING.md) et [PLAN_ACTION.md](docs/PLAN_ACTION.md)
 pour le rythme (sprints de 5).

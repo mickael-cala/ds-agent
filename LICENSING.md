@@ -1,81 +1,98 @@
 # LICENSING — double licence AGPL-3.0 + commerciale
 
-`ds-agent` est distribué sous **deux licences au choix** (modèle *dual licensing*) :
+`ds-agent` est distribué sous **deux licences au choix** (*dual licensing*) :
 
-| | Licence | Fichier |
+| | Licence | Référence |
 |---|---|---|
 | 🆓 **Open source** | GNU AGPL v3.0 *only* | [`LICENSE`](LICENSE) |
-| 💼 **Commerciale** | Contrat commercial sur mesure | [`LICENSE-COMMERCIAL.md`](LICENSE-COMMERCIAL.md) |
+| 💼 **Commerciale** | contrat sur mesure | §3 ci-dessous |
 
-Identifiant SPDX à utiliser dans les sources et les métadonnées de paquet :
+Identifiant SPDX : `AGPL-3.0-only OR LicenseRef-Commercial`.
 
-```
-AGPL-3.0-only OR LicenseRef-Commercial
-```
+## 1. Pourquoi l'AGPL
 
-## Pourquoi l'AGPL ?
+L'AGPL est un copyleft fort conçu pour les logiciels utilisés en réseau : toute version
+modifiée, **y compris proposée comme service en ligne**, doit rester libre et publiée.
 
-L'AGPL est une licence copyleft forte, conçue pour les logiciels utilisés en réseau.
-Elle garantit que toute version modifiée, **y compris lorsqu'elle est proposée comme
-service en ligne**, reste libre et que son code source est accessible à ses utilisateurs.
+En pratique : si vous intégrez `ds-agent` (ou une version modifiée) dans un produit ou un
+service accessible par réseau, vous devez publier la source complète de votre version sous
+AGPL, modifications comprises.
 
-Concrètement, si vous intégrez `ds-agent` (ou une version modifiée) dans un produit ou un
-service accessible par réseau, vous devez publier la source complète de votre version
-sous AGPL — y compris vos modifications.
-
-## Quand la licence commerciale est nécessaire
-
-La licence commerciale est destinée à celles et ceux qui **ne peuvent pas ou ne veulent pas**
-respecter les obligations de l'AGPL :
-
-- intégration dans un produit **propriétaire** distribué ou hébergé (SaaS) ;
-- revente, marque blanche, OEM ;
-- besoin d'une **garantie**, d'un support SLA ou d'une indemnisation (IP indemnity) ;
-- conditions de conformité internes interdisant le copyleft fort ;
-- redistribution sans obligation de publication des sources.
-
-Elle n'est pas nécessaire pour : usage personnel, usage interne non redistribué ? —
-**attention**, l'AGPL couvre aussi l'usage en réseau, voir ci-dessous.
+## 2. Quand la licence commerciale est nécessaire
 
 | Usage | AGPL suffit ? |
 |---|---|
 | Essai, recherche, usage personnel | ✅ |
-| Projet open source sous AGPL-compatible | ✅ |
-| Outil interne utilisé par vos seuls salariés, sans accès réseau de tiers | ✅ (aucune obligation de publication) |
+| Projet open source sous licence AGPL-compatible | ✅ |
+| Outil interne utilisé par vos salariés, sans accès de tiers | ✅ |
 | CLI vendue à des clients, code fermé | ❌ → commerciale |
-| Service SaaS exposé à des utilisateurs | ⚠️ → AGPL impose la publication, sinon commerciale |
-| Produit embarqué / OEM | ❌ → commerciale |
+| Service SaaS exposé à des utilisateurs | ⚠️ AGPL impose la publication, sinon commerciale |
+| Produit embarqué / OEM / marque blanche | ❌ → commerciale |
+| Besoin d'une garantie, d'un SLA ou d'une indemnisation IP | ❌ → commerciale |
 
-> Ce tableau est une aide à la décision, **pas un avis juridique**. En cas de doute sur
-> votre conformité, consultez un juriste.
+> Aide à la décision, **pas un avis juridique**. En cas de doute sur votre conformité,
+> consultez un juriste.
 
-## Contribuer
+## 3. Licence commerciale — cadre
 
-Sauf mention contraire, toute contribution (issue, pull request, patch) est acceptée sous
-la double licence du projet : AGPL-3.0 + commerciale, avec le droit pour le mainteneur de
-la redistribuer sous l'une ou l'autre. Cela permet au modèle *dual licensing* de rester
-viable (voir [CONTRIBUTING.md](CONTRIBUTING.md)).
+Ce qui suit résume le contrat ; seul le contrat signé fait foi.
 
-Si votre employeur détient des droits sur votre contribution, assurez-vous qu'il autorise
-cette cession non exclusive.
+**Objet.** Droit non exclusif, non transférable, mondial d'utiliser, modifier, compiler,
+distribuer et exploiter `ds-agent` et ses dérivés **sans les obligations de l'AGPL**,
+notamment sans publier votre code source.
 
-## Questions fréquentes
+**Périmètre couvert.** Usage interne (build, exécution, pipelines) ; intégration dans un
+produit ou service propriétaire, distribué ou hébergé ; redistribution OEM / marque blanche
+dans la limite du volume négocié ; mention factuelle « propulsé par ds-agent ».
 
-**L'AGPL s'applique-t-elle si j'utilise seulement le binaire `ds-agent` en local ?**
-Non, l'exécuter localement ne déclenche aucune obligation de publication. En revanche,
-le modifier ou le redistribuer, oui.
+**Hors périmètre.** Revente du logiciel comme produit autonome identique, sous-licence à un
+tiers concurrent, retrait des mentions de copyright.
 
-**Puis-je utiliser `ds-agent` pour coder un logiciel propriétaire ?**
-Oui : les artefacts que l'agent produit vous appartiennent. L'AGPL porte sur `ds-agent`
-lui-même, pas sur le code que vous lui faites écrire.
+**Articulation avec l'AGPL.** Le code reste publié sous AGPL : la licence commerciale ne
+révoque pas les droits que l'AGPL vous confère, elle les remplace à votre convenance.
 
-**Et les dépendances ?**
-`github.com/mark3labs/mcp-go` (MIT) et les modules indirects sont compatibles avec l'AGPL.
-La licence commerciale n'affecte pas ces composants.
+**Offres.** Community (AGPL seule, support communautaire) · Commercial (usage propriétaire,
+support e-mail) · Commercial + SLA (réponse sous 2 jours ouvrés) · Enterprise (SLA
+contractuel, indemnisation IP, audit de conformité, facturation annuelle).
 
-**Comment obtenir une licence commerciale ?**
-Voir [`LICENSE-COMMERCIAL.md`](LICENSE-COMMERCIAL.md) — contact via une issue GitHub
-intitulée « Licence commerciale ».
+**Tarification et durée.** Par siège, par site, par déploiement ou pourcentage du chiffre
+d'affaires, fixées au devis. Sans devis signé, aucune licence commerciale n'est accordée.
+
+**Données.** L'agent utilise par défaut une API tierce (DeepSeek) : prompts et extraits de
+code quittent la machine. Le Concédant ne collecte ni ne conserve de données d'usage. La
+conformité de la clé API et du traitement des données relève de votre responsabilité (voir
+[SECURITY.md](SECURITY.md)).
+
+**Garanties.** Fourniture « en l'état », sans garantie d'absence de défaut. Pas de
+responsabilité pour dommages indirects, pertes d'exploitation ou destruction de données —
+l'agent exécute des commandes shell et modifie des fichiers. Garantie de conformité et
+indemnisation plafonnées au prix payé sur les douze derniers mois.
+
+**Fin.** Non-paiement ou violation : résiliation après mise en demeure restée sans effet
+30 jours ; vous cessez alors l'exploitation du logiciel propriétaire et le retirez des
+produits distribués.
+
+**Contact.** Issue GitHub intitulée « Licence commerciale » (sans détail sensible) ou
+l'adresse indiquée sur le profil du mainteneur.
+
+## 4. Contribuer
+
+Sauf mention contraire, toute contribution (issue, PR, patch) est acceptée sous la double
+licence du projet : AGPL-3.0 + commerciale, avec le droit pour le mainteneur de la
+redistribuer sous l'une ou l'autre. Cela rend le modèle *dual licensing* viable. Si votre
+employeur détient des droits sur votre contribution, assurez-vous qu'il autorise cette
+cession non exclusive.
+
+## 5. Questions fréquentes
+
+**L'AGPL s'applique-t-elle si j'utilise le binaire en local ?** Non : exécuter localement ne
+déclenche aucune obligation. Modifier ou redistribuer, oui.
+
+**Puis-je coder un logiciel propriétaire avec `ds-agent` ?** Oui : le code que vous produisez
+vous appartient. L'AGPL porte sur `ds-agent`, pas sur ses sorties.
+
+**Et les dépendances ?** `github.com/mark3labs/mcp-go` (MIT) et les modules indirects sont
+compatibles AGPL ; la licence commerciale ne les affecte pas.
 
 ---
 

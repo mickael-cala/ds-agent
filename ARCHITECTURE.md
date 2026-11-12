@@ -1,107 +1,92 @@
 # ARCHITECTURE
 
-`ds-agent` est un **binaire unique**, sans serveur, sans base de données. Tout l'état
-vit dans : le répertoire de travail (fichiers, `.git/`, `mcp.json`), l'environnement
-(clé API), et un fichier de session JSON dans le dossier temporaire.
+`ds-agent` est un **binaire unique**, sans serveur ni base de données. Tout l'état vit dans :
+le répertoire de travail (fichiers, `.git/`, `mcp.json`), l'environnement (clé API), et des
+fichiers locaux (`~/.config/ds-agent/` : sessions + journal d'audit).
 
 ```
-                          ┌──────────────────────────────┐
-   stdin (REPL)  ────────▶│  main.go : boucle REPL       │
-                          │  /commandes │ prompt libre    │
-                          └──────────────┬───────────────┘
-                                         │ Message{Role:"user"}
-                                         ▼
-                          ┌──────────────────────────────┐
-                          │  compactHistory()            │  budget de tokens
-                          │  getSystemPrompt() + modes   │
-                          └──────────────┬───────────────┘
-                                         ▼
-   ┌──────────────┐   POST /v1/chat/completions   ┌────────────────────┐
-   │ api.deepseek │◀──────────────────────────────│  callChat()        │
-   │  (ou proxy)  │───── choices[0].message ──────▶│  chatOnce()        │
-   └──────────────┘   tool_calls[]                 │  retries/backoff   │
-                                                   └─────────┬──────────┘
-                                                             │ tool_calls
-                                     ┌───────────────────────▼───────────────┐
-                                     │ executeTool()                         │
-                                     │  ├─ local_read/write/edit/bash        │
-                                     │  │    → safePath + approve + git      │
-                                     │  ├─ local_web_search/fetch            │
-                                     │  └─ autres → serveur MCP (stdio)      │
-                                     └───────────────────────┬───────────────┘
-                                                             │ résultat tronqué
-                                                             ▼ (Message{Role:"tool"})
-                                                     retour à callChat()  ⟳
+   stdin (REPL) ──▶ main → compactHistory → getSystemPrompt
+                       │
+                       ▼
+                 callChat ──POST /v1/chat/completions──▶ API DeepSeek
+                       │◀── choices[0].message ──────────┘
+                       │
+                 tool_calls ?
+                       │
+        ┌──────────────┴──────────────────────────────┐
+        ▼                                             ▼
+  outils natifs (local_*)                     serveurs MCP (stdio)
+  safePath · approve · git checkpoint          Initialize · ListTools ·
+  env filtré · sandbox optionnelle             CallTool · 60 s
+        └──────────────┬──────────────────────────────┘
+                       ▼
+          résultat tronqué (60 Ko) + assaini + caviardé
+                       │
+                       ▼  Message{role:"tool"}
+                 retour à callChat  ⟳  (max 30 itérations)
 ```
 
-## Sections de `main.go`
+## Fichiers
 
-Le fichier est volontairement monolithique mais découpé en 10 sections numérotées :
+| Fichier | Rôle |
+|---|---|
+| `main.go` | constantes, types API, `Agent`, prompt système, `main`, REPL, MCP, commandes |
+| `sandbox.go` | `commandWithSandbox` (bwrap), `motDetecte` (commandes destructrices) |
+| `audit.go` | journal JSONL append-only (`AuditEntry`, `stateDir`) |
+| `proc_unix.go` / `proc_windows.go` | groupe de processus (timeout bash) et `flock` |
+| `*.go` (tests) | `compact_test.go`, `safety_test.go`, `trust_test.go`, `sprint3…8_test.go` |
+| `tools/paranoid/` | faux backend DeepSeek : 16 scénarios hostiles (`[[429]]`, `[[html]]`…) |
+| `tests/*.sh` | banc hostile, e2e REPL, compaction A/B, coupures |
+| `audit_api/` | sous-projet : micro-API Go 1.22 (routage par méthode) + 4 tests |
+| `.github/workflows/ci.yml` | qualité (`-race`), anti-secret, e2e, build 3 OS, `govulncheck` |
 
-| # | Section | Contenu clé |
-|---|---|---|
-| 1 | Configuration & constantes | `apiBase` (`DEEPSEEK_API_BASE`), `maxToolOut` (60 Ko), `maxAttempts` (4), `maxAPIBody` (32 Mo) |
-| 2 | Types & structures | `Message`, `ToolCall`, `ToolFunction`, `Tool`, `ChatRequest/Response`, `MCPConfig` |
-| 3 | Agent & modes | struct `Agent`, `getSystemPrompt()` (injection des personnalités), `defaultModel()`, `envInt()` |
-| 4 | `main` & protocole EMP | `parseOptions` (flags), chargement de session, init MCP, capture `SIGINT` (soft/hard kill), boucle REPL, rollback d'historique |
-| 5 | Serveurs MCP | `initMCPServers`, `closeMCPServers` — stdio, `Initialize`, `ListTools`, renommage `change_root` → `mcp_change_root` |
-| 6 | Boucle cognitive & LLM | `runLoop` (30/999 itérations), `callChat`, `chatOnce` (retries), `salvageJSON`, `snippet` |
-| 7 | Exécution des outils | `getTools`, `executeTool` (dispatch), `toolMCPSend`, `toolReadFile/WriteFile/EditFile/Bash` |
-| 8 | Natifs web | `toolWebSearch`, `toolWebFetch`, `postDeepSeekTool` |
-| 9 | Sécurité & sessions | `safePath`, `gitCheckpoint`, `approve`/`Prompter`, budget (`estTokens`, `tokenBudget`), `compactHistory`, `load/saveSession` |
-| 9.1 | Frontières de confiance | `childEnv`, `collectSecrets`/`redact`, `isSensitivePath`, `protectedWriteReason`, `writeFileAtomic`, `secureMkdirAll` |
-| — | Traçabilité | `audit.go` (JSONL append-only), `printStatus` (`/status`), `promptLabel` (modes visibles) |
-| — | Confinement | `sandbox.go` (`commandWithSandbox`, `motDetecte`), `proc_*.go` (groupe de processus) |
-| — | Lisibilité / entrées | `resumeOutil` (synthèse par outil), `validerURLFetch`, `normaliseBlocNumerote`, `modeActuel` |
-| 10 | Commandes & spinner | `startSpinner`/`stopSpinner`/`pauseSpinner`, `handleCommand` (`/help`, modes du chaos) |
-| — | Affichage sûr | `sanitizeTerm` (C0/C1/`ESC`), `diffHunk`/`printDiff` (aperçu avant écriture) |
+> Découpage en cours (roadmap v0.3, items `B1`–`B4`) : `llm.go`, `tools.go`, `session.go`,
+> `ui.go`, `trust.go` sortiront de `main.go`.
 
 ## Cycle d'un tour
 
-1. Le REPL lit une ligne ; `/…` part dans `handleCommand`, le reste devient un `Message` utilisateur.
-2. `compactHistory()` élague l'historique jusqu'au budget (compaction **à chaque** tour d'outil).
-3. Le prompt système est réécrit (OS, architecture, modes actifs, compteur d'omissions).
-4. `callChat()` poste l'historique + la liste d'outils ; `chatOnce()` gère les retries
+1. Le REPL lit une ligne ; `/…` va dans `handleCommand`, le reste devient un message utilisateur.
+2. `compactHistory()` ramène l'historique sous le budget : plafond par message, fenêtre récente
+   de 6, première consigne épinglée, jamais de `tool` orphelin.
+3. Le prompt système est réécrit (OS/arch, modes actifs, compteur d'omissions).
+4. `callChat` poste messages + schémas d'outils ; `chatOnce` gère les retries
    (408/425/429/5xx, `Retry-After`, backoff), borne le corps à 32 Mo, assainit l'UTF-8.
-5. Pas de `tool_calls` ⇒ réponse finale affichée. Sinon, chaque appel est exécuté,
-   son résultat tronqué (60 Ko) est ajouté en `Message{Role:"tool"}`.
+5. Sans `tool_calls` ⇒ réponse finale. Sinon chaque appel est exécuté, le résultat tronqué
+   (60 Ko), caviardé, résumé à l'écran, journalisé, et ajouté en `Message{role:"tool"}`.
 6. Cinq erreurs consécutives stoppent la boucle (`/terminator` l'outrepasse).
-7. En cas d'erreur ou d'annulation, le dernier message utilisateur est retiré (rollback)
-   et la session n'est **pas** sauvegardée.
+7. En cas d'erreur ou d'annulation, le dernier message utilisateur est retiré (rollback) et
+   la session n'est pas sauvegardée.
 
-## Décisions d'architecture
+## Décisions de conception
 
-| Décision | Raison |
-|---|---|
-| Un seul fichier `main.go` | simplicité de déploiement et de revue ; découpage en sections numérotées |
-| Outils natifs préfixés `local_` | éviter toute collision avec les outils MCP, distinguer l'ancrage |
-| Ancrage strict à `workDir` | `safePath` + `EvalSymlinks` : un chemin ne peut pas sortir du bac à sable |
-| Compaction plutôt que résumé LLM | pas d'appel supplémentaire, pas d'hallucination, coût nul |
-| Estimation `len/4` | zéro dépendance tokenizer ; marge volontairement pessimiste |
-| Retries déterministes | la robustesse doit être testable hors ligne (`tools/paranoid`) |
-| Confirmation par défaut = non | le shell est l'outil le plus dangereux, l'inaction est un choix sûr |
-| Sessions hashées par répertoire | pas de configuration, une session par projet |
-| Sessions dans `~/.config` | évite le `/tmp` partagé (lien symbolique, lecture par un tiers) |
-| Confirmations sur `/dev/tty` | le REPL et les questions ne partagent pas le même flux |
-
-## Sous-systèmes annexes
-
-- **`tools/paranoid/main.go`** (321 l.) : faux backend OpenAI/DeepSeek, scénario choisi
-  par marqueur dans le dernier message (`[[429]]`, `[[html]]`, `[[bigbody]]`…). Permet
-  de tester la robustesse réseau sans réseau.
-- **`audit_api/`** : module Go séparé, micro-API HTTP Go 1.22 (routage par méthode),
-  sert de cible de build/test indépendante.
-- **`proc_unix.go` / `proc_windows.go`** : isolation de la commande bash dans un groupe de
-  processus, pour que le timeout emporte les petits-enfants.
-- **`tests/*.sh`** : orchestration des bancs (hostile, compaction A/B, coupures) et
-  `tests/e2e.sh` (bout-en-bout : binaire réel, mock HTTP, boucle d'outils).
-- **`.github/workflows/ci.yml`** : `gofmt`/`vet`/`go test -race`, sous-projet, banc hostile,
-  e2e, build linux/macOS/Windows, `govulncheck`.
+| Décision | Raison | Limite assumée |
+|---|---|---|
+| Un binaire, aucune base | déploiement trivial, audit facile | état limité à des fichiers locaux |
+| Outils natifs préfixés `local_` | distinguer l'ancrage des outils MCP | — |
+| Ancrage strict (`safePath`) | empêcher l'évasion par chemin/symlink | ne couvre pas `local_bash` |
+| Compaction déterministe (pas de résumé LLM) | zéro coût, zéro hallucination | perte d'information silencieuse |
+| Estimation `len/4` | zéro dépendance | imprécise (roadmap `X2`) |
+| Retries déterministes | testables hors ligne | pas d'adaptation au backend |
+| Confirmation par défaut = non | le shell est l'outil le plus dangereux | fatigue de confirmation (`S8`) |
+| Sessions hashées par répertoire | zéro configuration | verrou → une instance par répertoire |
+| Écritures atomiques | jamais de fichier tronqué | coût d'un `Sync` par écriture |
+| Journal d'audit best-effort | ne bloque jamais la tâche | pas de garantie de durabilité |
 
 ## Points d'extension
 
-- **Nouvel outil natif** : ajouter l'entrée dans `getTools()`, un `case` dans
-  `executeTool()`, une méthode `toolXxx`, et un test.
-- **Nouveau backend** : `DEEPSEEK_API_BASE` + un modèle compatible OpenAI ; le format
-  `thinking`/`reasoning_effort` est spécifique DeepSeek et peut être ignoré côté serveur.
-- **Nouveau serveur MCP** : éditer `mcp.json` (aucun code à changer).
+- **Nouvel outil natif** : `getTools()` + `executeTool()` + méthode `toolXxx` + test
+  (3 points d'accroche, invariant AGENTS.md).
+- **Nouveau serveur MCP** : éditer `mcp.json` (`command`, `args`, `env`, `cwd`) — aucun code.
+- **Nouveau backend** : `DEEPSEEK_API_BASE` + modèle compatible OpenAI ; `thinking` /
+  `reasoning_effort` sont spécifiques DeepSeek.
+- **Nouvelle garde** : la placer dans `approve()` ou `executeTool()` (jamais dans les
+  appelants), et la couvrir par un test.
+
+## Tests et vérification
+
+| Niveau | Outil | Ce que ça prouve |
+|---|---|---|
+| unitaire | `go test ./...` (57) | compaction, `safePath`, diff, sessions, sandbox, anti-secret |
+| hostile | `tests/paranoid.sh` (16) | survie à un backend qui ment (HTML, JSON tronqué, 40 Mo, SSE…) |
+| bout-en-bout | `tests/e2e.sh` (2) | binaire réel + mock : boucle outil → réponse |
+| CI | `.github/workflows/ci.yml` | `-race` sur 3 OS, build multi-plateforme, `govulncheck` |

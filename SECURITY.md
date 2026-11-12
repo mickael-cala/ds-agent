@@ -1,58 +1,79 @@
-# Politique de sécurité
+# SÉCURITÉ
+
+Ce document décrit **ce que l'agent protège**, **ce qu'il ne protège pas**, et comment
+signaler une faille. Il est volontairement sans euphémisme : un garde-fou annoncé mais
+contournable est pire que pas de garde-fou.
 
 ## Signaler une vulnérabilité
 
-**N'ouvrez pas d'issue publique** pour un problème de sécurité.
+**Pas d'issue publique.** Contactez le mainteneur en privé (issue minimale demandant un canal,
+ou l'adresse du profil) avec : version/commit, système, reproduction, impact. Comptez un
+délai raisonnable de réponse avant toute divulgation. Seule la branche `main` reçoit des
+correctifs.
 
-1. Contactez le mainteneur en privé (issue GitHub minimale demandant un canal privé,
-   ou l'adresse indiquée dans le profil du dépôt).
-2. Décrivez : version/commit, système, étapes de reproduction, impact.
-3. Comptez un délai raisonnable de réponse avant toute divulgation publique.
+## Modèle de menace (résumé)
 
-## Ce que fait l'agent (et ce que vous acceptez)
+| Actif | Menace | État |
+|---|---|---|
+| Clé API (`DEEPSEEK_API_KEY`) | lue par un processus enfant, publiée dans un journal, commitée | ✅ `childEnv` + caviardage + `check-secrets.sh` |
+| Secrets locaux (`.env`, clés privées) | lus et envoyés au fournisseur d'API | ✅ confirmation de lecture, écriture refusée |
+| Code du dépôt | exfiltration par le modèle, suppression accidentelle | ⚠️ partiel : bornes, refus destructeur, sandbox optionnelle |
+| Système de fichiers | évasion du répertoire de travail | ⚠️ `safePath` pour les outils fichier ; `local_bash` = shell complet |
+| Terminal de l'opérateur | séquences ANSI/`\r` trompant la confirmation | ✅ `sanitizeTerm` |
+| Réseau | exfiltration via `bash`, SSRF | ❌ non isolé (`--sandbox` ne coupe pas le réseau) |
+| Prompt | injection par contenu lu (fichier, page, sortie, MCP) | ❌ non détectée — voir roadmap `S2`, `S7` |
+| Sessions / audit | lecture par un autre processus du même compte | ⚠️ `0600`, hors `/tmp`, non chiffré |
 
-`ds-agent` est un agent **local** qui exécute des commandes shell et modifie des fichiers
-avec les droits de l'utilisateur qui le lance. Il n'est pas conçu comme une frontière de sécurité :
-
-- `local_bash` exécute `sh -c` / `cmd /c` : **aucune sandbox**, aucune limitation de commande.
-- `local_write_file` / `local_edit_file` écrivent réellement sur le disque.
-- `local_web_fetch` effectue des requêtes sortantes arbitraires (SSRF si l'agent est exposé à
-  des entrées non fiables).
-- En mode `/auto` ou `/godmode`, plus aucune confirmation n'est demandée.
-
-**Recommandation** : lancez l'agent dans un répertoire de travail dédié, dans un conteneur
-ou sous un utilisateur système à privilèges réduits, et ne l'exposez jamais directement à
-des entrées d'un tiers non authentifié.
-
-### Mode sandbox (optionnel)
-
-`./ds-agent --sandbox` (ou `DEEPSEEK_SANDBOX=bwrap`) exécute chaque `local_bash` dans
-**bubblewrap** : système de fichiers racine en lecture seule, `workDir` et `/tmp`
-inscriptibles, PID/UTS isolés, `HOME` ramené au répertoire de travail. Sans `bwrap`
-installé, l'agent refuse de démarrer dans ce mode (pas de faux confinement).
-
-Limites assumées : le réseau reste disponible, le répertoire de travail est inscriptible
-(c'est le but), et Windows n'est pas couvert. Voir ERRATA-020.
+**Adversaires considérés** : le modèle lui-même (erreur ou instruction malveillante), un
+contenu lu non fiable (dépôt cloné, page web, sortie de commande), un serveur MCP tiers, un
+autre processus du même compte.
 
 ## Garde-fous implémentés
 
-| Garde-fou | Détail |
-|---|---|
-| Confirmation explicite | `[y/N]` pour bash / écriture / édition / outils MCP ; défaut **non** |
-| Anti-évasion de chemin | `safePath` : `Clean` + `EvalSymlinks` + `Rel`, rejet de `..` et des symlinks sortants |
-| Checkpoints git | commit automatique du fichier avant modification (si dépôt git) |
-| Budgets | corps HTTP ≤ 32 Mo, sortie d'outil ≤ 60 Ko, message ≤ 12 000 tokens |
-| Annulation | `Ctrl+C` → annulation du `context` (soft-kill) puis sortie (hard-kill) |
-| Clé API | uniquement via `DEEPSEEK_API_KEY`, jamais écrite sur disque par l'agent |
+- **Confirmation par défaut = non** : `[y/N]` pour shell, écriture, édition, outil MCP ;
+  seuls `y/yes/o/oui` valident. Lue sur `/dev/tty`, donc non volée par le REPL et
+  interruptible par `Ctrl+C`.
+- **Aperçu obligatoire** : diff avant écriture/édition ; commande affichée avant exécution.
+- **`safePath`** : `Clean` + `EvalSymlinks` + `Rel`, rejet de `..` et des liens sortants.
+- **Fichiers sensibles** : `.env*`, `*.pem`, `*.key`, `id_*`, `.ssh/`, `.aws/`, `.gnupg/`,
+  `.git/config`, `.npmrc`, `.netrc` → lecture confirmée ; écriture (`mcp.json`, `.gitignore`,
+  `.env*`, `.git/**`) refusée.
+- **Environnement filtré** pour tout processus enfant (shell, MCP) : pas de `*_KEY`,
+  `*_TOKEN`, `*_SECRET`, `AWS_*`, `GITHUB_*`… ; secrets connus caviardés dans les sorties.
+- **Motifs destructeurs** refusés avant confirmation : `rm -rf /`, `mkfs`, `dd of=/dev/…`,
+  fork bomb, `curl | sh`. `/godmode` est le seul contournement, assumé.
+- **Bornes** : 32 Mo de corps HTTP, 60 Ko de sortie d'outil, 12 000 tokens par message,
+  4 tentatives, 30 itérations (999 en `/rabbithole`), budget de tokens optionnel.
+- **Timeout** : groupe de processus tué (Unix), `WaitDelay` ; `SIGTERM` sauvegarde et ferme.
+- **Journal d'audit** append-only `0600` (empreinte des arguments, jamais en clair).
+- **Sandbox** `--sandbox` : bubblewrap, racine en lecture seule, `workDir`/`/tmp`
+  inscriptibles, PID/UTS isolés, `HOME` = `workDir`. Refus de démarrer sans `bwrap`.
 
-## Gestion des secrets
+## Ce que l'agent ne protège pas
 
-- `.env`, `mcp.json` et les binaires compilés sont **ignorés** par git (`.gitignore`).
-- Des modèles non sensibles sont fournis : `.env.example`, `mcp.json.example`.
-- Les sessions sont stockées hors du dépôt, dans `$TMPDIR/ds-sessions/` (permissions `0600`).
-- Si un secret a été poussé par erreur : **révoquez-le immédiatement**, puis purgez l'historique
-  (`git filter-repo` ou BFG). Supprimer le fichier dans un nouveau commit ne suffit pas.
+1. **`local_bash` est un shell complet.** Après approbation, il peut lire `~/.ssh`, écrire
+   hors du répertoire, lancer un serveur. `--sandbox` réduit la surface, ne l'annule pas.
+2. **Le réseau n'est pas isolé.** Un `curl` reste possible, y compris sous `--sandbox`.
+3. **L'injection de prompt n'est pas détectée.** Un fichier ou une page contenant
+   « ignore les instructions précédentes » n'est qu'une chaîne de caractères.
+4. **Les sessions et l'audit ne sont pas chiffrés** (permissions `0600` seulement).
+5. **Windows** : pas de `flock`, `kill` limité au processus direct, pas de sandbox.
+6. **Les checkpoints git** échouent silencieusement sans `user.name`/`user.email`.
 
-## Versions supportées
+Chaque point est suivi dans [ROADMAP.md](ROADMAP.md) (items `S1`–`S8`, `v0.4`).
 
-Projet à stade expérimental : seule la branche `main` reçoit des correctifs de sécurité.
+## Gestion des secrets (projet)
+
+- `.env`, `mcp.json`, binaires et `*.bak` sont ignorés par git.
+- `./scripts/check-secrets.sh` échoue en CI si un jeton (`sk-`, `ghp_`, `github_pat_`,
+  `AKIA`, `xox…`), une clé privée ou un fichier interdit est versionné. Les fixtures de test
+  portent un marqueur `check-secrets:allow` explicite.
+- Sessions : `~/.config/ds-agent/sessions` (`0600`, atomique, verrouillées).
+- Si un secret a été poussé : **révoquez-le**, puis purgez l'historique (`git filter-repo`
+  ou BFG). Supprimer le fichier dans un commit suivant ne suffit pas.
+
+## Recommandations d'usage
+
+Lancez l'agent dans un répertoire dédié, sous un utilisateur à privilèges réduits, avec
+`--sandbox` si `bwrap` est disponible. N'activez `/auto` ou `/godmode` que sur du code que
+vous pouvez perdre. N'exposez jamais l'agent à des entrées d'un tiers non authentifié.

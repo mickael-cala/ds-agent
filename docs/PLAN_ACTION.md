@@ -26,7 +26,7 @@ Règles du jeu :
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
 Les hashs de commits ne sont **pas** stockés ici (ils changent à chaque rebase) : se référer
-aux messages de commit. La suite du programme est dans [ROADMAP.md](ROADMAP.md) (v0.3 → v1.0).
+aux messages de commit. La suite du programme est dans [ROADMAP.md](../ROADMAP.md) (v0.3 → v1.0).
 
 **Bilan : 35/35 items livrés**, 57 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
 CI multi-plateforme, documentation à jour.

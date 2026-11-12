@@ -6,6 +6,13 @@ publié sous forme de release binaire : les versions ci-dessous décrivent l'ét
 
 ## [Non publié]
 
+### Modifié — consolidation documentaire
+
+- 16 fichiers `.md` à la racine → **9** : `FAQ` fusionnée dans `README`, `CODE_OF_CONDUCT`
+  et `PUBLISHING` dans `CONTRIBUTING`, `LICENSE-COMMERCIAL` dans `LICENSING`, `STATUS` dans
+  `ROADMAP` ; `ANALYSE_main.md` supprimé (obsolète), `AUDIT.md` et `PLAN_ACTION.md` archivés
+  dans `docs/`. Tous les liens internes vérifiés.
+
 ### À venir
 
 Voir [ROADMAP.md](ROADMAP.md), qui traduit les six constats de l'audit externe en jalons :
@@ -21,7 +28,7 @@ Voir [ROADMAP.md](ROADMAP.md), qui traduit les six constats de l'audit externe e
 
 ## [0.2.0] — 2026-11-12
 
-Correctifs issus de [AUDIT.md](AUDIT.md), suivis dans [PLAN_ACTION.md](PLAN_ACTION.md).
+Correctifs issus de [AUDIT.md](docs/AUDIT.md), suivis dans [PLAN_ACTION.md](docs/PLAN_ACTION.md).
 
 ### Corrigé — sprint 1 (« arrêter de mentir à l'opérateur »)
 

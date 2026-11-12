@@ -2,344 +2,238 @@
 
 [![Go](https://img.shields.io/badge/Go-%E2%89%A5%201.22-00ADD8)](https://go.dev)
 [![Licence](https://img.shields.io/badge/licence-AGPL--3.0%20%7C%20commercial-blue)](LICENSING.md)
-[![Statut](https://img.shields.io/badge/statut-v0.2.0-orange)](STATUS.md)
+[![Statut](https://img.shields.io/badge/statut-v0.2.0-orange)](ROADMAP.md)
 [![Release](https://img.shields.io/github/v/release/mickael-cala/ds-agent)](../../releases/latest)
 [![CI](https://github.com/mickael-cala/ds-agent/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 
-Agent de codage en terminal, écrit en Go, propulsé par l'API **DeepSeek**.
-Il boucle sur des *tool calls* : lire, écrire, patcher, exécuter du shell, chercher
-sur le web — et se brancher sur des serveurs **MCP** externes pour étendre son jeu d'outils.
+Agent de codage en terminal, en Go, propulsé par l'API **DeepSeek**. Il boucle sur des
+*tool calls* : lire, écrire, patcher, exécuter du shell, chercher sur le web — et se brancher
+sur des serveurs **MCP** pour étendre son jeu d'outils.
 
-Fichier principal : `main.go` (agent monolithique, ~1 200 lignes). Aucun framework, aucune dépendance lourde :
-`mcp-go` + la bibliothèque standard.
+Un binaire, une dépendance (`mcp-go`), aucun framework, aucune base de données.
 
 ```
 [deepseek-chat] Vous > corrige le bug de parsing dans tools/paranoid
->> Exécuter "go test ./..." ? [y/N] : y
-...
+⚙️  Appel : local_read_file
+   tools/paranoid/main.go → 321 ligne(s) lues
+>> Appliquer la modification ? [y/N] : y
 ```
-
----
-
-## Documentation
-
-| Doc | Contenu |
-|---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | schéma du flux, découpage de `main.go`, décisions de conception |
-| [STATUS.md](STATUS.md) | état de santé, plateformes, dette technique, vérifications |
-| [AUDIT.md](AUDIT.md) | audit pédagogique & paranoïaque : dev, cyber, UI/UX, scénarios d'attaque, plan d'action |
-| [ROADMAP.md](ROADMAP.md) | jalons v0.3 → v1.0 avec critères de sortie, risques, non-objectifs |
-| [ERRATA.md](ERRATA.md) | bugs corrigés (avec test de non-régression) et défauts ouverts |
-| [PLAN_ACTION.md](PLAN_ACTION.md) | correctifs de l'audit, en sprints de 5, avec statuts |
-| [PUBLISHING.md](PUBLISHING.md) | renommage du module, authentification, push et contrôles |
-| [FAQ.md](FAQ.md) | questions fréquentes (installation, coût, MCP, sécurité) |
-| [CHANGELOG.md](CHANGELOG.md) | historique des versions |
-| [AGENTS.md](AGENTS.md) | consignes pour les agents de codage IA travaillant sur le dépôt |
-| [SECURITY.md](SECURITY.md) · [CONTRIBUTING.md](CONTRIBUTING.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | signalement, contributions, conduite |
-| [LICENSING.md](LICENSING.md) · [LICENSE](LICENSE) · [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md) | double licence AGPL-3.0 / commerciale |
-
----
 
 ## Sommaire
 
-- [Fonctionnalités](#fonctionnalités)
-- [Prérequis](#prérequis)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Utilisation](#utilisation)
-- [Outils natifs](#outils-natifs)
-- [Serveurs MCP](#serveurs-mcp)
-- [Sécurité & garde-fous](#sécurité--garde-fous)
-- [Tests](#tests)
-- [Structure du dépôt](#structure-du-dépôt)
-- [Dépannage](#dépannage)
-- [Contribuer](#contribuer)
-
----
-
-## Fonctionnalités
-
-- **Boucle agentique** : le modèle enchaîne les appels d'outils jusqu'à produire une réponse finale.
-- **Chain-of-Thought** : `thinking` + `reasoning_effort` (affichage du `reasoning_content`).
-- **6 outils natifs** ancrés dans le répertoire de travail (`local_*`) + outils MCP (`mcp_*`).
-- **Serveurs MCP stdio** déclarés dans `mcp.json`, outils injectés dynamiquement.
-- **Sessions persistantes** (`~/.config/ds-agent/sessions`, une par répertoire, écriture atomique,
-  verrou exclusif : une seule instance à la fois).
-- **Compaction de contexte** : estimation pessimiste des tokens, plafonnement par message,
-  conservation d'une fenêtre récente — l'historique ne dépasse jamais le budget.
-- **Checkpoints git** automatiques avant chaque écriture / édition (si le dossier est un dépôt git).
-- **Protocole « Agent Smith »** : `Ctrl+C` annule la tâche en cours (soft-kill), puis quitte (hard-kill).
-- **Retries résilients** : 429 / 5xx / `Retry-After`, corps HTML, JSON tronqué, UTF-8 invalide.
-- **Modes de personnalité** cumulables (`/mandalorian`, `/bladerunner`, `/matrix`, …).
-
-## Prérequis
-
-| Élément | Version |
-|---|---|
-| Go | ≥ 1.22 (développé sur 1.27.x, Termux/arm64 et Windows) |
-| Clé API | DeepSeek ([platform.deepseek.com](https://platform.deepseek.com)) |
-| Shell | `sh`/`bash` sous Unix, `cmd` sous Windows |
+[Installation](#installation) · [Configuration](#configuration) · [Utilisation](#utilisation) ·
+[Outils](#outils) · [MCP](#serveurs-mcp) · [Sécurité](#sécurité--garde-fous) ·
+[Tests](#tests) · [FAQ](#faq) · [Documentation](#documentation)
 
 ## Installation
 
-```bash
-git clone <url-du-depot> ds-agent
-cd ds-agent
-
-# configuration locale (non versionnée)
-cp .env.example .env
-$EDITOR .env          # renseignez DEEPSEEK_API_KEY
-set -a; . ./.env; set +a
-
-# build + lancement
-go build -ldflags="-s -w" -o ds-agent .
-./ds-agent
-```
-
-Ou depuis une release publiée (binaires linux/amd64, linux/arm64, darwin/amd64, darwin/arm64,
-windows/amd64 + `SHA256SUMS`) :
+**Depuis une release** (linux/darwin amd64+arm64, windows amd64, `SHA256SUMS` joint) :
 
 ```bash
 curl -LO https://github.com/mickael-cala/ds-agent/releases/latest/download/ds-agent_v0.2.0_linux_amd64
-chmod +x ds-agent_v0.2.0_linux_amd64 && ./ds-agent_v0.2.0_linux_amd64 --help
+chmod +x ds-agent_v0.2.0_linux_amd64
+export DEEPSEEK_API_KEY=…
+./ds-agent_v0.2.0_linux_amd64 --help
 ```
 
-Ou via le script fourni (build + run) :
+**Depuis les sources** :
 
 ```bash
-export DEEPSEEK_API_KEY=...      # obligatoire, jamais en dur dans le dépôt
-./build_and_run.sh               # Unix
-./clean.sh                       # nettoie binaires, sessions et journal d'audit
-build_and_run.cmd                # Windows
+git clone https://github.com/mickael-cala/ds-agent && cd ds-agent
+cp .env.example .env            # renseignez DEEPSEEK_API_KEY (jamais commité)
+set -a; . ./.env; set +a
+go build -ldflags "-s -w -X main.version=$(git describe --tags 2>/dev/null || echo dev)" -o ds-agent .
+./ds-agent
 ```
+
+Scripts fournis : `build_and_run.sh` (Unix), `build_and_run.cmd` (Windows), `clean.sh` /
+`clean.cmd` (binaire, sessions, journal d'audit). Prérequis : Go ≥ 1.22, `sh`/`bash`
+(Unix) ou `cmd` (Windows), une clé DeepSeek.
 
 ## Configuration
 
-Tout passe par des variables d'environnement :
-
 | Variable | Défaut | Rôle |
 |---|---|---|
-| `DEEPSEEK_API_KEY` | — (**obligatoire**) | Clé API ; le binaire refuse de démarrer sans elle |
-| `DEEPSEEK_MODEL` | `deepseek-chat` | Modèle utilisé au démarrage (`/model` pour changer à chaud) |
-| `DEEPSEEK_API_BASE` | `https://api.deepseek.com` | Base HTTP (proxy, mock, serveur de test) |
-| `DEEPSEEK_CONTEXT_TOKENS` | `60000` | Fenêtre de contexte déclarée, pilote la compaction |
-| `DEEPSEEK_MAX_ITERATIONS` | `30` | Itérations max par tâche (999 en `/rabbithole`) |
-| `DEEPSEEK_MAX_TOKENS` | `0` | Plafond de tokens envoyés par session (0 = illimité) |
-| `DEEPSEEK_BASH_TIMEOUT` | `120` | Délai max d'un `local_bash`, en secondes |
-| `DEEPSEEK_HTTP_TIMEOUT` | `300` | Délai max d'une requête à l'API |
-| `DEEPSEEK_MCP_TIMEOUT` | `60` | Délai max d'un appel d'outil MCP |
+| `DEEPSEEK_API_KEY` | — (**obligatoire**) | clé API ; l'agent refuse de démarrer sans elle |
+| `DEEPSEEK_MODEL` | `deepseek-chat` | modèle initial (`/model` pour changer) |
+| `DEEPSEEK_API_BASE` | `https://api.deepseek.com` | base HTTP (proxy, mock, Ollama local) |
+| `DEEPSEEK_CONTEXT_TOKENS` | `60000` | fenêtre déclarée, pilote la compaction |
+| `DEEPSEEK_MAX_ITERATIONS` | `30` | itérations max par tâche (999 en `/rabbithole`) |
+| `DEEPSEEK_MAX_TOKENS` | `0` | plafond de tokens envoyés par session (0 = illimité) |
+| `DEEPSEEK_BASH_TIMEOUT` | `120` | délai max d'un `local_bash` (s) |
+| `DEEPSEEK_HTTP_TIMEOUT` | `300` | délai max d'une requête à l'API (s) |
+| `DEEPSEEK_MCP_TIMEOUT` | `60` | délai max d'un appel MCP (s) |
+| `DEEPSEEK_SANDBOX` | `none` | `bwrap` pour confiner `local_bash` |
 | `DEEPSEEK_AUDIT` | `on` | `off` désactive le journal d'audit |
-| `MCP_ROOT_SECRET` | — | Secret exigé par le serveur MCP pour `change_root` |
-| `MCP_ROOT` | répertoire courant | Injecté dans les serveurs MCP au démarrage |
-
-Les outils `local_*` sont toujours **ancrés** au répertoire de lancement ; `mcp_change_root`
-ne déplace que la racine du serveur MCP.
+| `MCP_ROOT` | répertoire courant | injecté dans les serveurs MCP |
 
 ## Utilisation
 
 ```bash
-./ds-agent                     # REPL dans le répertoire courant
-./ds-agent --version           # version (injectée par ldflags)
-./ds-agent --dir ~/projet      # autre répertoire de travail
-./ds-agent --model deepseek-reasoner --auto --no-spinner
+./ds-agent --help                       # aide complète
+./ds-agent --dir ~/projet --model deepseek-reasoner
+./ds-agent --auto --no-spinner          # sans confirmations, sans animation
+./ds-agent --sandbox                    # local_bash sous bubblewrap
 ```
 
 | Drapeau | Effet |
 |---|---|
-| `--version` | affiche la version et quitte |
+| `--help` | aide : drapeaux, variables, commandes |
+| `--version` | version (injectée par `-ldflags -X main.version=…`) |
 | `--dir <chemin>` | répertoire de travail (défaut : courant) |
 | `--model <nom>` | modèle initial (`deepseek-…` ou `fournisseur/modèle`) |
-| `--auto` | auto-approbation (aucune confirmation) |
-| `--no-spinner` | désactive l'animation (automatique hors TTY) |
+| `--auto` | auto-approbation : aucune confirmation |
+| `--no-spinner` | désactive l'animation (automatique hors terminal) |
 | `--sandbox` | confine `local_bash` avec bubblewrap (racine en lecture seule) |
-| `-h`, `--help` | aide complète : drapeaux, variables, commandes |
 
-Commandes du REPL :
+### Commandes du REPL
 
 | Commande | Effet |
 |---|---|
-| `/help` | Liste des commandes |
-| `/model <nom>` | Change le modèle API |
-| `/think on\|off` | Active/désactive le Chain-of-Thought |
-| `/auto` | Auto-approbation (plus de `[y/N]`) |
-| `/clear` | Purge l'historique, les compteurs et le fichier de session |
-| `/status` | Modèle, modes, outils, budget, dépense, session, journal |
-| `/verbose` | Affiche le contenu complet des sorties d'outils |
-| `/exit`, `/quit` | Ferme les serveurs MCP et quitte |
+| `/help` | liste des commandes |
+| `/status` | modèle, modes, outils, contexte, dépense, session, journal |
+| `/verbose` | affiche le contenu complet des sorties d'outils |
+| `/model <nom>` | change de modèle (nom validé) |
+| `/think on\|off` | Chain-of-Thought |
+| `/auto` | bascule l'auto-approbation |
+| `/clear` | purge historique, compteurs et fichier de session |
+| `/exit`, `/quit` | ferme les serveurs MCP et quitte |
 
-### Les modes du chaos (cumulables)
+### Modes (cumulables)
 
-| Commande | Personnalité injectée dans le prompt système |
-|---|---|
-| `/mandalorian` 🛡️ | Zéro bavardage : code brut / exécution directe |
-| `/bladerunner` 🦄 | Audit sécurité impitoyable, exige des tests |
-| `/terminator` 🤖 | N'abandonne jamais sur les erreurs web (504/404) |
-| `/matrix` 💊 | Patche et relance jusqu'à l'`Exit Code 0` |
-| `/rabbithole` 🐇 | Profondeur d'exécution 30 → 999 itérations |
-| `/godmode` 😈 | **[DANGER]** pleins pouvoirs : aucune confirmation |
+`/mandalorian` 🛡️ (zéro bavardage) · `/bladerunner` 🦄 (audit sécurité) ·
+`/terminator` 🤖 (n'abandonne pas sur les erreurs web) · `/matrix` 💊 (relance jusqu'au
+succès) · `/rabbithole` 🐇 (999 itérations) · `/godmode` 😈 (**[DANGER]** aucune confirmation).
 
-## Outils natifs
+L'invite affiche les modes actifs : `[deepseek-chat|GOD,RABBIT] Vous >`.
+
+## Outils
 
 | Outil | Arguments | Description |
 |---|---|---|
-| `local_read_file` | `path` | Lit un fichier (tronqué à ~60 Ko) |
-| `local_write_file` | `path`, `content` | Écrit un fichier (checkpoint git avant) |
-| `local_edit_file` | `path`, `search_block`, `replace_block` | Remplacement de bloc exact (checkpoint git avant) |
-| `local_bash` | `command` | `sh -c` (Unix) / `cmd /c` (Windows), timeout 120 s |
-| `local_web_search` | `query` | Recherche web via l'API DeepSeek |
-| `local_web_fetch` | `url` | Récupère le contenu d'une URL |
+| `local_read_file` | `path` | lit un fichier, lignes numérotées (≤ 1 Mo) |
+| `local_write_file` | `path`, `content` | écrit (diff affiché, checkpoint git) |
+| `local_edit_file` | `path`, `search_block`, `replace_block` | remplace un bloc unique |
+| `local_bash` | `command` | `sh -c` / `cmd /c`, 120 s, groupe de processus tué au timeout |
+| `local_web_search` | `query` | recherche via l'API DeepSeek |
+| `local_web_fetch` | `url` | contenu d'une URL (`http`/`https` uniquement) |
 
-Tous les chemins passent par `safePath` : `Clean` + `EvalSymlinks` + `Rel`,
-toute tentative d'évasion (`..`, lien symbolique sortant) est rejetée.
+Chemins confinés par `safePath` (`Clean` + `EvalSymlinks` + `Rel`) ; toute sortie d'outil est
+tronquée (60 Ko) et assainie avant affichage.
 
 ## Serveurs MCP
 
-Copiez le modèle et pointez-le vers votre serveur MCP (stdio) :
-
 ```bash
-cp mcp.json.example mcp.json
-$EDITOR mcp.json
+cp mcp.json.example mcp.json && $EDITOR mcp.json
 ```
 
 ```json
 {
   "serveur-local": {
     "command": "/chemin/absolu/vers/mcp-server",
-    "args": []
+    "args": [],
+    "env": ["MA_VAR=valeur"],
+    "cwd": "/chemin/de/travail"
   }
 }
 ```
 
-Au démarrage, l'agent lance chaque serveur, s'initialise, liste ses outils et les
-injecte dans le prompt. L'outil `change_root` est renommé `mcp_change_root` pour éviter
-toute collision avec les outils natifs. Les erreurs de démarrage / `Initialize` /
-`ListTools` sont signalées mais n'empêchent pas l'agent de fonctionner.
+L'agent lance chaque serveur, l'initialise, liste ses outils et les injecte dans le prompt
+(`change_root` → `mcp_change_root`). `env` est filtré comme pour tout processus enfant
+(aucun secret hérité) ; `cwd` passe par un wrapper `sh -c` (Unix uniquement).
 
 ## Sécurité & garde-fous
 
-- **Confirmation par défaut** : toute écriture, édition, commande shell ou outil MCP demande
-  `[y/N]` — la touche Entrée seule vaut **non** (`/auto` et `/godmode` désactivent cette garde).
-- **Aperçu avant action** : un diff compact (`@@ ligne N @@`, `-`/`+`) est affiché avant
-  toute écriture ou édition de fichier.
-- **Assainissement terminal** : les chaînes d'origine distante (modèle, web, MCP, erreurs)
-  sont purgées de leurs séquences de contrôle avant affichage (`sanitizeTerm`).
-- **Environnement filtré** : un serveur MCP ou une commande shell ne voit ni
-  `DEEPSEEK_API_KEY` ni les autres variables évoquant un secret.
-- **Caviardage** : les secrets connus sont remplacés par `[REDACTED]` dans les sorties d'outils.
-- **Fichiers sensibles** : lecture de `.env*`, clés privées, `.ssh/`, `.aws/` soumise à
-  confirmation ; écriture de `mcp.json`, `.gitignore`, `.env*`, `.git/**` refusée.
-- **Sessions** : hors du dossier temporaire partagé, permissions `0600`, écriture atomique.
-- **Journal d'audit** : `~/.config/ds-agent/audit.jsonl` (outil, empreinte des arguments,
-  décision, résultat, taille), `0600`, append-only, désactivable via `DEEPSEEK_AUDIT=off`.
-- **Sans secret dans le dépôt** : `scripts/check-secrets.sh` échoue si un jeton, une clé
-  privée ou un fichier interdit (`.env`, `mcp.json`, `*.bak`) est versionné.
-- **Plafonds** : `DEEPSEEK_MAX_ITERATIONS` et `DEEPSEEK_MAX_TOKENS` bornent les boucles
-  auto-approuvées.
-- **Commandes destructrices** : `rm -rf /`, `mkfs`, `dd of=/dev/…`, fork bomb, `curl | sh`
-  sont refusés avant confirmation (contournables uniquement par `/godmode`).
-- **Sandbox optionnelle** : `--sandbox` exécute `local_bash` sous bubblewrap — racine en
-  lecture seule, `workDir` et `/tmp` seuls inscriptibles, PID isolés.
-- **Anti-évasion** : `safePath` refuse `..` et les liens symboliques sortant du bac à sable.
-- **Checkpoints git** : commit automatique du fichier avant modification, rollback manuel facile.
-- **Rollback d'historique** : en cas d'erreur ou d'annulation, le dernier message utilisateur est retiré.
-- **Corps HTTP plafonné** à 32 Mo (y compris les outils web), sorties d'outils tronquées à 60 Ko.
-- **Aucun secret dans le dépôt** : `.env`, `mcp.json` et les binaires sont ignorés (voir [SECURITY.md](SECURITY.md)).
+- **Confirmation par défaut = non** : écriture, édition, shell, outil MCP. Seuls `y/yes/o/oui`
+  valident ; `/auto` et `/godmode` désactivent la garde.
+- **Aperçu avant action** : diff compact (`@@ ligne N @@`, `-`/`+`) avant toute écriture.
+- **Fichiers protégés** : lecture de `.env*`, clés privées, `.ssh/`, `.aws/`, `.git/config`
+  soumise à confirmation ; écriture de `mcp.json`, `.gitignore`, `.env*`, `.git/**` refusée.
+- **Environnement filtré** : les processus enfants (shell, MCP) ne voient pas
+  `DEEPSEEK_API_KEY` ni les variables de type `*_TOKEN`/`*_SECRET` ; secrets caviardés.
+- **Commandes destructrices** refusées avant confirmation (`rm -rf /`, `mkfs`, `dd of=/dev/…`,
+  fork bomb, `curl | sh`), contournables seulement par `/godmode`.
+- **Sandbox optionnelle** : `--sandbox` (bubblewrap) — racine en lecture seule, `workDir` et
+  `/tmp` inscriptibles, PID isolés. Sans `bwrap`, l'agent refuse de démarrer dans ce mode.
+- **Journal d'audit** JSONL `~/.config/ds-agent/audit.jsonl` (`0600`, append-only) : outil,
+  empreinte des arguments, décision, résultat, taille.
+- **Bornes** : corps HTTP ≤ 32 Mo, sortie d'outil ≤ 60 Ko, message ≤ 12 000 tokens,
+  4 tentatives HTTP.
+- **Sessions** : `~/.config/ds-agent/sessions`, `0600`, écriture atomique, verrou exclusif
+  (une instance par répertoire).
 
-> ⚠️ Cet agent exécute des commandes shell. Lancez-le dans un répertoire de travail
-> dont vous pouvez assumer la perte, et n'activez `/godmode` qu'en connaissance de cause.
+Ce que l'agent **ne** protège pas : `local_bash` reste un shell complet, le réseau n'est pas
+isolé, et une injection de prompt (contenu lu) n'est pas détectée. Voir
+[SECURITY.md](SECURITY.md) et les trous assumés dans [ERRATA.md](ERRATA.md).
 
 ## Tests
 
 ```bash
-go test ./...                # tests unitaires (budget de tokens, compaction)
-go vet ./...
+go test ./...                 # 57 tests (compaction, sécurité, outils, sessions)
+go vet ./... && gofmt -l .
+bash tests/paranoid.sh        # banc hostile : 16 scénarios, 0 échec attendu
+bash tests/e2e.sh             # bout-en-bout : binaire réel + mock, boucle d'outils
+./scripts/check-secrets.sh    # aucun jeton ni fichier interdit versionné
+( cd audit_api && make )      # sous-projet : fmt, vet, test, build
 ```
 
-Banc d'essai « serveur paranoïaque » : `tools/paranoid` est un faux backend
-OpenAI/DeepSeek qui sabote volontairement les réponses (429, HTML, JSON tronqué,
-40 Mo de corps, tool calls invalides, SSE…). Résultats détaillés : [tests/PARANOID.md](tests/PARANOID.md).
-
-```bash
-bash tests/paranoid.sh       # code de sortie = nombre de crashs/blocages
-bash tests/e2e.sh            # bout-en-bout : binaire réel + mock, boucle d'outils
-bash tests/context.sh        # A/B compaction de contexte
-bash tests/crash.sh          # robustesse aux coupures
-```
-
-```bash
-./scripts/check-secrets.sh   # garde-fou : aucun jeton ni fichier interdit versionné
-```
-
-La CI (`.github/workflows/ci.yml`) exécute `gofmt`, `go vet`, `scripts/check-secrets.sh`,
+La CI (`.github/workflows/ci.yml`) exécute `gofmt`, `go vet`, `check-secrets`,
 `go test -race`, le banc hostile, l'e2e, `govulncheck` et un build linux/macOS/Windows.
 
-Le sous-projet [`audit_api/`](audit_api/README.md) est une micro-API Go 1.22
-(routage par méthode) utilisée comme cible de tests et de build.
+## FAQ
 
-## Structure du dépôt
+**Ça coûte cher ?** Le coût suit le volume de contexte renvoyé à chaque tour. Trois leviers :
+`DEEPSEEK_CONTEXT_TOKENS` (borne l'historique), `DEEPSEEK_MAX_TOKENS` (plafond par session),
+`/status` (jauge). Un tour envoie tout l'historique : les longues sessions coûtent plus.
 
-```
-.
-├── main.go                 # agent complet (config, MCP, boucle LLM, outils, REPL)
-├── sandbox.go              # confinement bwrap + garde-fou commandes destructrices
-├── .github/workflows/ci.yml # CI : qualité, build 3 OS, govulncheck
-├── audit.go                # journal d'audit JSONL
-├── proc_unix.go / proc_windows.go  # groupe de processus (timeout bash)
-├── compact_test.go         # tests budget de tokens / compaction
-├── go.mod / go.sum
-├── mcp.json.example        # modèle de configuration MCP (mcp.json est ignoré)
-├── .env.example            # modèle de variables d'environnement
-├── build_and_run.sh/.cmd   # build + lancement
-├── clean.sh / clean.cmd    # nettoyage (binaires, sessions, audit)
-├── tools/paranoid/         # faux backend DeepSeek (banc d'essai)
-├── tests/                  # scénarios shell + PARANOID.md (résultats)
-├── audit_api/              # micro-API Go (cible de test)
-├── LICENSE                 # AGPL-3.0 (texte canonique)
-├── README.md               # ce fichier
-├── ANALYSE_main.md         # analyse technique détaillée de main.go
-├── ARCHITECTURE.md         # flux interne & conception
-├── STATUS.md               # état du projet
-├── AUDIT.md                # audit dev / cyber / UI-UX (pédagogique & paranoïaque)
-├── ROADMAP.md              # feuille de route
-├── ERRATA.md               # bugs corrigés / défauts connus
-├── PLAN_ACTION.md          # 4 sprints de correctifs (statuts)
-├── AGENTS.md               # consignes pour agents IA
-├── FAQ.md · CHANGELOG.md
-├── SECURITY.md · CONTRIBUTING.md · CODE_OF_CONDUCT.md
-└── LICENSING.md · LICENSE-COMMERCIAL.md
+**Ça tourne où ?** Termux/Android (plateforme de développement), Linux, macOS, Windows.
+
+**Comment reprendre une session ?** Relancer l'agent dans le même répertoire recharge
+`~/.config/ds-agent/sessions/<hash>.json`. `/clear` la supprime.
+
+**Pourquoi l'agent refuse d'écrire `.env` ou `mcp.json` ?** Volontaire : `mcp.json` est lancé
+au démarrage suivant, `.gitignore` peut réactiver le versionnement de secrets. Créez-les à la
+main, ou passez par `/godmode` en connaissance de cause.
+
+**Deux instances en parallèle ?** Non : un `flock` protège la session, la seconde refuse de
+démarrer (libéré à la mort du processus, jamais périmé).
+
+**Et si je ferme le terminal ?** `SIGTERM` sauvegarde un historique nettoyé (sans `tool_call`
+en attente), ferme les serveurs MCP, puis quitte.
+
+**Comment tester sans consommer de crédits ?** `tools/paranoid` simule un backend hostile :
+
+```bash
+go build -o "$TMPDIR/paranoid" ./tools/paranoid && "$TMPDIR/paranoid" -addr 127.0.0.1:8792 &
+DEEPSEEK_API_BASE=http://127.0.0.1:8792 DEEPSEEK_API_KEY=test ./ds-agent
+# puis écrire « [[429]] », « [[html]] », « [[toolcall]] »… pour choisir le scénario
 ```
 
-## Dépannage
+**Modèle inconnu / 400 au premier appel ?** `go.mod` déclare `go 1.27.1`, et tous les modèles
+`deepseek-*` ne sont pas disponibles : vérifiez `DEEPSEEK_MODEL`, utilisez `deepseek-chat`.
 
-| Symptôme | Cause probable | Solution |
-|---|---|---|
-| `Erreur: Définissez la variable DEEPSEEK_API_KEY` | clé absente | exportez la variable ou utilisez `.env` |
-| `[MCP] mcp.json invalide` | JSON malformé | validez le fichier (`jq . mcp.json`) |
-| `[MCP] '…' : démarrage échoué` | chemin du binaire MCP incorrect | chemin **absolu**, binaire exécutable |
-| `réponse sans choices` | backend non conforme / modèle inexistant | vérifiez `DEEPSEEK_MODEL` |
-| `HTTP 400` au premier appel | modèle inconnu de l'API | utilisez `deepseek-chat` |
-| Réponses tronquées | budget de contexte atteint | augmentez `DEEPSEEK_CONTEXT_TOKENS` |
+**Pourquoi pas de streaming ?** Non implémenté, rejeté explicitement (ERRATA-101). Planifié.
 
-## Contribuer
+**Où sont mes données ?** Prompts et extraits de fichiers partent vers l'API configurée ;
+aucune télémétrie propre. Sessions et audit restent locaux, en clair (chiffrement en v0.4).
 
-Les pull requests sont bienvenues — voir [CONTRIBUTING.md](CONTRIBUTING.md) et le code de
-conduite [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Travaillez avec un agent IA ?
-Lisez [AGENTS.md](AGENTS.md). Questions récurrentes : [FAQ.md](FAQ.md).
+## Documentation
 
-Signalez toute faille de sécurité via les canaux décrits dans [SECURITY.md](SECURITY.md),
-jamais dans une issue publique. Défauts connus : [ERRATA.md](ERRATA.md).
+| Doc | Contenu |
+|---|---|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | flux, fichiers, décisions de conception, points d'extension |
+| [ROADMAP.md](ROADMAP.md) | état actuel + jalons v0.3 → v1.0 avec critères de sortie |
+| [ERRATA.md](ERRATA.md) | défauts corrigés (avec test) et défauts ouverts (avec parade) |
+| [SECURITY.md](SECURITY.md) | modèle de menace, garde-fous, signalement |
+| [AGENTS.md](AGENTS.md) | consignes pour les agents de codage IA |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | environnement, règles, tests, publication, conduite |
+| [CHANGELOG.md](CHANGELOG.md) | historique des versions |
+| [LICENSING.md](LICENSING.md) | double licence AGPL-3.0 / commerciale |
+| [docs/AUDIT.md](docs/AUDIT.md) | audit externe (dev / cyber / UI-UX), constats et plan |
+| [docs/PLAN_ACTION.md](docs/PLAN_ACTION.md) | sprint en cours (5 items) et historique |
 
-## Licence : AGPL-3.0 **ou** commerciale
+## Licence
 
-`ds-agent` est distribué sous **double licence**, au choix :
-
-- 🆓 **GNU AGPL v3.0** (`AGPL-3.0-only`) — voir [`LICENSE`](LICENSE) ; toute version
-  modifiée, y compris exposée en SaaS, doit rester libre et publiée.
-- 💼 **Licence commerciale** — pour un usage propriétaire, un produit fermé, du
-  marbre blanc / OEM, un SLA ou une indemnisation IP : voir
-  [`LICENSE-COMMERCIAL.md`](LICENSE-COMMERCIAL.md).
-
-Identifiant SPDX : `AGPL-3.0-only OR LicenseRef-Commercial`. Détail des cas d'usage et
-de la politique de contribution : [`LICENSING.md`](LICENSING.md).
-
+Double licence, au choix : **GNU AGPL v3.0** ([`LICENSE`](LICENSE)) ou **commerciale**
+([LICENSING.md](LICENSING.md)). Identifiant SPDX : `AGPL-3.0-only OR LicenseRef-Commercial`.
 Copyright (C) 2025 les contributeurs de `ds-agent`.
