@@ -149,6 +149,44 @@ ERRATA-005, appliqué à `chatOnce` mais pas aux outils web.
 
 **Verrou.** `TestPostDeepSeekToolBorne`.
 
+### ERRATA-014 — Les processus enfants héritaient de tous les secrets 🔴
+
+**Symptôme.** Un serveur MCP tiers (binaire inconnu) et chaque `sh -c` recevaient
+`DEEPSEEK_API_KEY`, `MCP_ROOT_SECRET` et tout le reste de l'environnement.
+
+**Cause.** `append(os.Environ(), …)` pour les serveurs MCP, `cmd.Env` implicite pour bash.
+
+**Correction.** `childEnv()` retire toute variable dont le nom évoque un secret
+(`*_KEY`, `*_TOKEN`, `*_SECRET`, `AWS_*`, `GITHUB_*`…) tout en conservant l'outillage
+(`PATH`, `GOPATH`, `SSH_AUTH_SOCK`…). Les valeurs connues sont en plus caviardées
+(`redact`) dans les sorties d'outils.
+
+**Verrou.** `TestChildEnvSansSecrets`, `TestRedactSecrets`, `TestCollectSecrets`.
+
+### ERRATA-015 — Sessions dans `/tmp`, chemin prévisible, écriture non atomique 🟠
+
+**Symptôme.** Historique dans `$TMPDIR/ds-sessions/<hash>.json`, dossier créé sans contrôle
+(risque de lien symbolique préexistant), écriture directe (fichier tronqué en cas de crash).
+
+**Correction.** `~/.config/ds-agent/sessions` (`os.UserConfigDir`, repli `$TMPDIR`),
+`secureMkdirAll` (0700, refus des liens), `writeFileAtomic` (temporaire + `Sync` + `Rename`,
+donc le lien est remplacé et non suivi), permissions `0600`.
+
+**Verrou.** `TestWriteFileAtomic`, `TestWriteFileAtomicNeSuitPasLesLiens`,
+`TestSecureMkdirRefuseLien`, `TestSessionPathHorsTmpPartage`.
+
+### ERRATA-016 — L'agent pouvait réécrire sa propre configuration d'exécution 🟠
+
+**Symptôme.** `local_write_file` acceptait `mcp.json` (lancé au démarrage suivant),
+`.gitignore` (réactivation du versionnement de secrets), `.env`, `.git/hooks/*` et les
+fichiers de clés. Une consigne injectée pouvait y persister du code.
+
+**Correction.** `protectedWriteReason()` refuse l'écriture et l'édition de ces chemins avec
+un motif explicite ; la lecture des fichiers sensibles exige désormais une confirmation.
+
+**Verrou.** `TestProtectedWritePaths`, `TestEcritureProtegeeRefusee`,
+`TestSensitivePaths`, `TestLectureSensibleDemandeConfirmation`.
+
 ---
 
 ## 2. Défauts ouverts

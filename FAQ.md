@@ -54,13 +54,15 @@ profondeur). Ils sont cumulables ; `/mandalorian` seul suffit pour du code brut 
 bavardage. `/godmode` supprime toutes les confirmations — à vos risques.
 
 **Comment annuler une tâche en cours ?**
-`Ctrl+C` une fois : annulation de la tâche (soft-kill), l'historique est restauré.
+`Ctrl+C` une fois : annulation de la tâche (soft-kill), l'historique de conversation est
+restauré — **pas les fichiers déjà écrits** (utiliser les checkpoints git).
 `Ctrl+C` une seconde fois : sortie. La session n'est sauvegardée qu'après une réponse
 réussie.
 
 **Puis-je reprendre une conversation ?**
 Oui, automatiquement : relancer l'agent dans le même répertoire recharge la session
-(fichier nommé d'après un hachage du répertoire). `/clear` la vide.
+(`~/.config/ds-agent/sessions/<hash>.json`, une par répertoire). `/clear` la vide.
+Ancien emplacement (`$TMPDIR/ds-sessions`) : supprimable sans risque.
 
 **Deux instances en parallèle ?**
 Elles partagent le même fichier de session (ERRATA-107) : une seule instance par répertoire.
@@ -91,6 +93,16 @@ Voir [AGENTS.md](AGENTS.md).
 Non pour les outils natifs : `safePath` normalise, résout les symlinks et rejette tout
 chemin sortant. Mais `local_bash` est un shell complet : `cd /` et `rm` restent possibles
 après votre confirmation.
+
+**Pourquoi l'agent refuse-t-il d'écrire `.env` ou `mcp.json` ?**
+C'est volontaire (ERRATA-016) : `mcp.json` est lancé au démarrage suivant, `.gitignore` peut
+réactiver le versionnement de secrets, `.env` contient des clés. Créez-les à la main. La
+**lecture** de ces fichiers reste possible, mais après confirmation explicite.
+
+**Un serveur MCP voit-il ma clé API ?**
+Non : les processus enfants reçoivent un environnement filtré (`childEnv`), sans
+`DEEPSEEK_API_KEY`, `MCP_ROOT_SECRET` ni variables de type `*_TOKEN`. Les valeurs sensibles
+connues sont aussi caviardées (`[REDACTED]`) dans les sorties d'outils.
 
 **Mes fichiers sont-ils sauvegardés avant modification ?**
 Si le répertoire est un dépôt git, oui : un commit `Auto-checkpoint: <fichier>` est créé

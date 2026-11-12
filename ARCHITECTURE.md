@@ -48,7 +48,8 @@ Le fichier est volontairement monolithique mais découpé en 10 sections numéro
 | 6 | Boucle cognitive & LLM | `runLoop` (30/999 itérations), `callChat`, `chatOnce` (retries), `salvageJSON`, `snippet` |
 | 7 | Exécution des outils | `getTools`, `executeTool` (dispatch), `toolMCPSend`, `toolReadFile/WriteFile/EditFile/Bash` |
 | 8 | Natifs web | `toolWebSearch`, `toolWebFetch`, `postDeepSeekTool` |
-| 9 | Sécurité & sessions | `safePath`, `gitCheckpoint`, `approve`, budget (`estTokens`, `tokenBudget`), `compactHistory`, `load/saveSession` |
+| 9 | Sécurité & sessions | `safePath`, `gitCheckpoint`, `approve`/`Prompter`, budget (`estTokens`, `tokenBudget`), `compactHistory`, `load/saveSession` |
+| 9.1 | Frontières de confiance | `childEnv`, `collectSecrets`/`redact`, `isSensitivePath`, `protectedWriteReason`, `writeFileAtomic`, `secureMkdirAll` |
 | 10 | Commandes & spinner | `startSpinner`/`stopSpinner`/`pauseSpinner`, `handleCommand` (`/help`, modes du chaos) |
 | — | Affichage sûr | `sanitizeTerm` (C0/C1/`ESC`), `diffHunk`/`printDiff` (aperçu avant écriture) |
 
@@ -77,6 +78,8 @@ Le fichier est volontairement monolithique mais découpé en 10 sections numéro
 | Retries déterministes | la robustesse doit être testable hors ligne (`tools/paranoid`) |
 | Confirmation par défaut = non | le shell est l'outil le plus dangereux, l'inaction est un choix sûr |
 | Sessions hashées par répertoire | pas de configuration, une session par projet |
+| Sessions dans `~/.config` | évite le `/tmp` partagé (lien symbolique, lecture par un tiers) |
+| Confirmations sur `/dev/tty` | le REPL et les questions ne partagent pas le même flux |
 
 ## Sous-systèmes annexes
 

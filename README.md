@@ -60,7 +60,7 @@ Fichier principal : `main.go` (agent monolithique, ~1 200 lignes). Aucun framewo
 - **Chain-of-Thought** : `thinking` + `reasoning_effort` (affichage du `reasoning_content`).
 - **6 outils natifs** ancrés dans le répertoire de travail (`local_*`) + outils MCP (`mcp_*`).
 - **Serveurs MCP stdio** déclarés dans `mcp.json`, outils injectés dynamiquement.
-- **Sessions persistantes** (JSON dans le dossier temporaire, une session par répertoire).
+- **Sessions persistantes** (`~/.config/ds-agent/sessions`, une par répertoire, écriture atomique).
 - **Compaction de contexte** : estimation pessimiste des tokens, plafonnement par message,
   conservation d'une fenêtre récente — l'historique ne dépasse jamais le budget.
 - **Checkpoints git** automatiques avant chaque écriture / édition (si le dossier est un dépôt git).
@@ -189,6 +189,12 @@ toute collision avec les outils natifs. Les erreurs de démarrage / `Initialize`
   toute écriture ou édition de fichier.
 - **Assainissement terminal** : les chaînes d'origine distante (modèle, web, MCP, erreurs)
   sont purgées de leurs séquences de contrôle avant affichage (`sanitizeTerm`).
+- **Environnement filtré** : un serveur MCP ou une commande shell ne voit ni
+  `DEEPSEEK_API_KEY` ni les autres variables évoquant un secret.
+- **Caviardage** : les secrets connus sont remplacés par `[REDACTED]` dans les sorties d'outils.
+- **Fichiers sensibles** : lecture de `.env*`, clés privées, `.ssh/`, `.aws/` soumise à
+  confirmation ; écriture de `mcp.json`, `.gitignore`, `.env*`, `.git/**` refusée.
+- **Sessions** : hors du dossier temporaire partagé, permissions `0600`, écriture atomique.
 - **Anti-évasion** : `safePath` refuse `..` et les liens symboliques sortant du bac à sable.
 - **Checkpoints git** : commit automatique du fichier avant modification, rollback manuel facile.
 - **Rollback d'historique** : en cas d'erreur ou d'annulation, le dernier message utilisateur est retiré.

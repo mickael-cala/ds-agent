@@ -29,10 +29,30 @@ Correctifs issus de [AUDIT.md](AUDIT.md), suivis dans [PLAN_ACTION.md](PLAN_ACTI
 - `postDeepSeekTool` : lecture bornée à 32 Mo, erreurs `Marshal`/`NewRequest`/`ReadAll`
   vérifiées, extrait d'erreur assaini (ERRATA-013, D03).
 
+### Corrigé — sprint 2 (« frontières de confiance »)
+
+- **Environnement enfant filtré** : `childEnv()` retire les variables évoquant un secret
+  avant de lancer un serveur MCP ou `sh -c` ; l'outillage (`PATH`, `GOPATH`,
+  `SSH_AUTH_SOCK`…) est conservé (ERRATA-014, C01/C02).
+- **Caviardage** : les valeurs sensibles connues et les jetons (`sk-…`, `ghp_…`, `AKIA…`)
+  sont remplacés par `[REDACTED]` dans les sorties d'outils avant l'envoi au modèle.
+- **Lecture protégée** : `.env*`, clés privées, `.ssh/`, `.aws/`, `.git/config`… exigent une
+  confirmation explicite (C03).
+- **Écriture interdite** sur `mcp.json`, `.gitignore`, `.git/**`, `.env*` et les fichiers de
+  clés, avec motif affiché — plus de persistance d'exécution par configuration (ERRATA-016, C07).
+- **Confirmations sur `/dev/tty`** : le REPL et les `[y/N]` ne se volent plus les lignes
+  tapées d'avance ; `Ctrl+C` interrompt une question sans exiger `Entrée` (C05).
+- **Sessions hors du temporaire partagé** : `~/.config/ds-agent/sessions`, dossier vérifié
+  (0700, refus des liens), écriture atomique `Sync` + `Rename` (ERRATA-015, C06, D02).
+- Écriture atomique également pour les fichiers modifiés par l'agent : plus de fichier
+  tronqué si le processus meurt pendant l'écriture.
+
 ### Tests
 
-- +5 tests : `TestSanitizeTerm`, `TestDiffHunk`, `TestDiffHunkNouveauFichier`,
+- +6 tests (sprint 1) : `TestSanitizeTerm`, `TestDiffHunk`, `TestDiffHunkNouveauFichier`,
   `TestDiffHunkTronque`, `TestSpinnerPauseResume`, `TestPostDeepSeekToolBorne`.
+- +14 tests (sprint 2) : environnement enfant, caviardage, chemins sensibles/protégés,
+  confirmations, écriture atomique, sessions. Total : **25 tests**.
 
 ## [0.1.0] — 2026-11-12
 

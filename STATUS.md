@@ -9,7 +9,7 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 | Indicateur | État |
 |---|---|
 | Build | ✅ `go build .` sans warning |
-| Tests unitaires | ✅ 11/11 (`go test ./...`, après sprint 1) |
+| Tests unitaires | ✅ 25/25 (`go test ./...`, après sprint 2) |
 | Sous-projet `audit_api` | ✅ 4/4 (`cd audit_api && go test ./...`) |
 | Banc hostile | ✅ 16 scénarios, 0 échec critique (`tests/paranoid.sh`) |
 | `gofmt` | ✅ aucun fichier à reformater |
@@ -25,7 +25,11 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 - Outils natifs : lecture, écriture, édition par bloc, shell, recherche web, fetch.
 - Serveurs MCP stdio : démarrage, `Initialize`, `ListTools`, injection, exécution.
 - Compaction de contexte : budget, plafond par message, pas de `tool` orphelin.
-- Reprise de session après redémarrage (même répertoire → même fichier de session).
+- Reprise de session après redémarrage (même répertoire → même fichier de session,
+  stocké dans `~/.config/ds-agent/sessions` avec écriture atomique).
+- Environnement enfant filtré (ni clé API ni jeton) et secrets caviardés dans les sorties.
+- Confirmations lues sur `/dev/tty` : plus de lignes volées au REPL, `Ctrl+C` interrompt.
+- Écriture refusée sur `mcp.json`, `.git/**`, `.env`, clés privées ; lecture confirmée.
 - Compilation Windows (`build_and_run.cmd` fourni, `cmd /c` pour `local_bash`).
 - Robustesse réseau : 429, 502, 500 itératif, corps HTML, JSON tronqué, UTF-8 invalide,
   corps de 40 Mo (RAM stable), SSE rejeté proprement.
@@ -37,7 +41,7 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 | D1 | `main.go` monolithique (1 284 lignes, 7 sections numérotées) | lisibilité, tests difficiles | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | D2 | Estimation de tokens `len/4` (pas de tokenizer) | compaction approximative | ERRATA-104 |
 | D3 | Aucun test d'intégration bout-en-bout (seulement unitaire + mock) | régressions possibles sur le REPL | ROADMAP v0.2 |
-| D4 | Sessions en clair dans `$TMPDIR` | fuite de code/historique sur poste partagé | ERRATA-103 |
+| D4 | Sessions en clair dans `~/.config` (chemin corrigé, contenu non chiffré) | fuite de code/historique sur poste partagé | ERRATA-103 |
 | D5 | `audit_api/` est un module Go séparé | non couvert par `go test ./...` racine | ROADMAP v0.2 |
 | D6 | Un seul `SIGINT` géré, pas de `SIGTERM` | arrêt sale via `kill`/systemd | ERRATA-102 |
 | D7 | Tests shell non portables sous Windows | couverture réduite sur cette plateforme | tests/*.sh |

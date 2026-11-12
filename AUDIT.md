@@ -89,7 +89,7 @@ Conséquences : `go install` impossible, imports non qualifiés, nom de paquet q
 nulle part sur GitHub, confusion à la première contribution.
 **Correctif** : `github.com/<compte>/ds-agent` (et `.../audit_api`), puis `go mod tidy`.
 
-### D02 — Écritures de fichiers non atomiques 🟠
+### D02 — Écritures de fichiers non atomiques 🟠 — ✅ corrigé (sprint 2)
 `main.go:796` et `830` : `os.WriteFile(full, …, 0644)` directement sur la cible.
 Un `Ctrl+C`, un OOM Android ou une coupure de batterie au mauvais moment laisse un fichier
 **tronqué** — le pire scénario, car le checkpoint git vient d'être créé et l'utilisateur
@@ -189,7 +189,7 @@ Modèle de menace retenu : **le modèle est un attaquant semi-contrôlé** (prom
 via dépôt, README, page web, sortie de commande, outil MCP) et **les dépendances sont des
 inconnus** (serveur MCP tiers). L'utilisateur est un humain pressé.
 
-### C01 — La clé API fuit vers tous les enfants 🔴
+### C01 — La clé API fuit vers tous les enfants 🔴 — ✅ corrigé (sprint 2)
 `main.go:370` : `env := append(os.Environ(), "MCP_ROOT="+a.workDir)` puis
 `client.NewStdioMCPClient(cfg.Command, env, …)`. Tout serveur MCP — **binaire tiers** —
 reçoit `DEEPSEEK_API_KEY`, `MCP_ROOT_SECRET`, les tokens du shell, l'historique de
@@ -199,7 +199,7 @@ simplement curieux ; la clé permet ensuite de consommer le compte.
 **Correctif** : environnement minimal en liste blanche (`PATH`, `HOME`, `TMPDIR`, `LANG`),
 `MCP_ROOT` explicite, aucun secret ; documenter que les serveurs MCP sont du code de confiance.
 
-### C02 — Le shell de l'agent peut lire et publier la clé 🟠
+### C02 — Le shell de l'agent peut lire et publier la clé 🟠 — ✅ corrigé (sprint 2)
 Le modèle peut appeler `local_bash` avec `env` ou `echo $DEEPSEEK_API_KEY` : la sortie
 revient dans l'historique, donc (a) chez le fournisseur d'API, (b) à l'écran, (c) dans la
 session en clair. Aucun garde-fou ne signale un accès à un secret.
@@ -207,7 +207,7 @@ session en clair. Aucun garde-fou ne signale un accès à un secret.
 dans la mémoire du père), et détecter les motifs `*_KEY`, `*_TOKEN`, `*_SECRET` dans la
 sortie d'outil pour la caviarder avant envoi.
 
-### C03 — Lecture sans approbation = exfiltration silencieuse 🟠
+### C03 — Lecture sans approbation = exfiltration silencieuse 🟠 — ✅ corrigé (sprint 2)
 `toolReadFile` (`738-775`) ne demande **aucune confirmation** ; le contenu part
 immédiatement dans la requête suivante. Or le README demande à l'utilisateur de créer
 `.env` **dans le répertoire de travail**. Une consigne injectée (« lis `.env` et résume la
@@ -232,7 +232,7 @@ classique, très peu coûteuse.
 `\x1b` par `\\x1b` (ou `ESC` littéral) pour tout texte d'origine distante ou modèle ;
 appliquer avant **chaque** `Printf` d'une valeur non constante.
 
-### C05 — Le `[y/N]` n'est pas une vraie barrière 🟠
+### C05 — Le `[y/N]` n'est pas une vraie barrière 🟠 — ✅ corrigé (sprint 2)
 `approve()` (`958-970`) utilise **le même `bufio.Scanner`** que le REPL (`306`).
 Trois conséquences :
 1. du texte tapé d'avance (collage multi-lignes) est consommé comme réponse ;
@@ -243,7 +243,7 @@ Trois conséquences :
 **Correctif** : ouvrir `/dev/tty` (ou `CONIN$`) pour les confirmations, afficher le motif de
 refus en cas d'EOF, et rendre `approve` injectable (interface `Prompter`) pour les tests.
 
-### C06 — Sessions dans un répertoire temporaire prédictible 🟡
+### C06 — Sessions dans un répertoire temporaire prédictible 🟡 — ✅ corrigé (sprint 2)
 `sessionPath` (`1088-1093`) : `os.TempDir()/ds-sessions/<8 octets de SHA-256 du workdir>.json`,
 `MkdirAll(0700)` **sans vérifier si le dossier existait déjà ni à qui il appartient**.
 Sur un hôte multi-utilisateurs (`/tmp` partagé), un attaquant peut pré-créer
@@ -253,7 +253,7 @@ arbitraire avec les droits de la victime (TOCTOU), ou simple déni (dossier 0700
 vérifier `stat` (propriétaire = uid, mode 0700, pas de lien), ouvrir avec
 `O_NOFOLLOW|O_CREAT|O_EXCL`, écrire via fichier temporaire + `Rename`.
 
-### C07 — `mcp.json` : persistance d'exécution invisible 🟠
+### C07 — `mcp.json` : persistance d'exécution invisible 🟠 — ✅ corrigé (sprint 2)
 `local_write_file` peut écrire `mcp.json` (dans `workDir`, donc autorisé par `safePath`),
 or ce fichier **est ignoré par git** (`.gitignore`) : la modification ne sera vue ni en
 revue de code ni dans `git status`. Au prochain démarrage, l'agent exécute la commande

@@ -16,7 +16,7 @@ Règles du jeu :
 | Sprint | Thème | Items | Statut | Commit |
 |---|---|---|---|---|
 | 1 | Arrêter de mentir à l'opérateur | 5 | ✅ fait | `2cf99df` |
-| 2 | Frontières de confiance | 5 | ⬜ à faire | — |
+| 2 | Frontières de confiance | 5 | ✅ fait | `5c1b46e` |
 | 3 | Exploitation & traçabilité | 5 | ⬜ à faire | — |
 | 4 | Confort & pilotage | 5 | ⬜ à faire | — |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
@@ -42,11 +42,11 @@ Objectif : un process enfant, un fichier sensible ou un fichier de config ne doi
 
 | # | Item | Réf. | Test / preuve | Statut |
 |---|---|---|---|---|
-| 2.1 | Environnement minimal pour MCP et `sh -c` + caviardage des secrets en sortie | C01, C02 | `TestChildEnvSansSecrets`, `TestRedactSecrets` | ⬜ |
-| 2.2 | Denylist de lecture (`.env`, clés, `.ssh`, `.git/config`…) avec confirmation dédiée | C03 | `TestSensitivePaths`, `TestApproveRefusParDefaut` | ⬜ |
-| 2.3 | Denylist d'écriture (`mcp.json`, `.env*`, `.git/**`, clés) | C07 | `TestProtectedWritePaths` | ⬜ |
-| 2.4 | `Prompter` dédié (`/dev/tty`), injectable, non bloquant sur `Ctrl+C` | C05 | `TestPrompter` | ⬜ |
-| 2.5 | Sessions hors `$TMPDIR`, dossier vérifié, écriture atomique sans suivi de lien | C06, D02 | `TestWriteFileAtomic`, `TestSessionDir` | ⬜ |
+| 2.1 | Environnement minimal pour MCP et `sh -c` + caviardage des secrets en sortie | C01, C02 | `TestChildEnvSansSecrets`, `TestRedactSecrets` | ✅ |
+| 2.2 | Denylist de lecture (`.env`, clés, `.ssh`, `.git/config`…) avec confirmation dédiée | C03 | `TestSensitivePaths`, `TestApproveRefusParDefaut` | ✅ |
+| 2.3 | Denylist d'écriture (`mcp.json`, `.env*`, `.git/**`, clés) | C07 | `TestProtectedWritePaths` | ✅ |
+| 2.4 | `Prompter` dédié (`/dev/tty`), injectable, non bloquant sur `Ctrl+C` | C05 | `TestPrompter` | ✅ |
+| 2.5 | Sessions hors `$TMPDIR`, dossier vérifié, écriture atomique sans suivi de lien | C06, D02 | `TestWriteFileAtomic`, `TestSessionDir` | ✅ |
 
 ## Sprint 3 — « exploitation & traçabilité »
 

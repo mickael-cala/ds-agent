@@ -18,7 +18,9 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -180,6 +182,10 @@ type Agent struct {
 	cancelMu   sync.Mutex
 	cancelFunc context.CancelFunc
 
+	// Confiance : secrets à caviarder, interactions utilisateur dédiées
+	secrets  []string
+	prompter Prompter
+
 	mcpServers []MCPServerInstance
 }
 
@@ -276,6 +282,8 @@ func main() {
 		spinnerChan:  make(chan bool),
 	}
 	a.scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024)
+	a.prompter = newPrompter(a.scanner)
+	a.secrets = collectSecrets()
 	a.sessionPath = sessionPath(wd)
 
 	a.loadSession()
@@ -289,6 +297,7 @@ func main() {
 			a.cancelMu.Lock()
 			if a.cancelFunc != nil {
 				fmt.Print("\n\n🕶️ [AGENT SMITH] Anomalie détectée. Processus DeepSeek interrompu...\n")
+				signalAsk()    // débloque une éventuelle question [y/N] en cours
 				a.cancelFunc() // Soft-kill de la tâche
 			} else {
 				fmt.Print("\n\n🕶️ [AGENT SMITH] Purge du système. Extinction.\n")
@@ -370,7 +379,7 @@ func (a *Agent) initMCPServers() {
 
 	for name, cfg := range configs {
 		fmt.Printf("[MCP] Démarrage '%s'...\n", name)
-		env := append(os.Environ(), "MCP_ROOT="+a.workDir)
+		env := childEnv("MCP_ROOT=" + a.workDir)
 		mcpClient, err := client.NewStdioMCPClient(cfg.Command, env, cfg.Args...)
 		if err != nil {
 			fmt.Printf("[MCP] '%s' : démarrage échoué : %v\n", name, err)
@@ -480,6 +489,11 @@ func (a *Agent) runLoop(ctx context.Context) (string, error) {
 			a.startSpinner("Exécution de l'outil...")
 			result, err := a.executeTool(ctx, tc)
 			a.stopSpinner()
+			if err == nil {
+				// Caviardage : un secret lu par erreur (env, fichier, commande) ne
+				// doit pas repartir vers le modèle ni vers le fournisseur d'API.
+				result = a.redact(result)
+			}
 
 			if err != nil {
 				result = "Erreur outil : " + err.Error()
@@ -853,6 +867,13 @@ func (a *Agent) toolReadFile(args map[string]any) (string, error) {
 	if info.Size() > 50*1024*1024 {
 		return "", fmt.Errorf("Fichier %.1f Mo. Utilise local_bash", float64(info.Size())/1024/1024)
 	}
+	// Lecture d'un fichier sensible : consentement explicite, sinon une consigne
+	// injectée suffit à envoyer .env ou une clé privée au fournisseur (C03).
+	if isSensitivePath(p) {
+		if !a.approve("Lire un fichier sensible (" + p + ")") {
+			return "Annulé", nil
+		}
+	}
 	f, err := os.Open(full)
 	if err != nil {
 		return "", err
@@ -889,6 +910,9 @@ func (a *Agent) toolWriteFile(args map[string]any) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if reason := protectedWriteReason(p); reason != "" {
+		return "", fmt.Errorf("écriture refusée : %s (%s)", p, reason)
+	}
 	old, _ := os.ReadFile(full) // absent = nouveau fichier
 	printDiff(p, string(old), c)
 	if !a.approve("Écrire " + p) {
@@ -896,7 +920,7 @@ func (a *Agent) toolWriteFile(args map[string]any) (string, error) {
 	}
 	a.gitCheckpoint(full)
 	os.MkdirAll(filepath.Dir(full), 0755)
-	err = os.WriteFile(full, []byte(c), 0644)
+	err = writeFileAtomic(full, []byte(c), 0644)
 	return "Écriture réussie.", err
 }
 
@@ -908,6 +932,9 @@ func (a *Agent) toolEditFile(args map[string]any) (string, error) {
 	full, err := a.safePath(p)
 	if err != nil {
 		return "", err
+	}
+	if reason := protectedWriteReason(p); reason != "" {
+		return "", fmt.Errorf("édition refusée : %s (%s)", p, reason)
 	}
 	data, err := os.ReadFile(full)
 	if err != nil {
@@ -930,7 +957,7 @@ func (a *Agent) toolEditFile(args map[string]any) (string, error) {
 		return "Annulé", nil
 	}
 	a.gitCheckpoint(full)
-	err = os.WriteFile(full, []byte(newC), 0644)
+	err = writeFileAtomic(full, []byte(newC), 0644)
 	return "Modification appliquée.", err
 }
 
@@ -953,6 +980,7 @@ func (a *Agent) toolBash(ctx context.Context, args map[string]any) (string, erro
 	}
 	cmd := exec.CommandContext(tCtx, sh, fl, c)
 	cmd.Dir = a.workDir
+	cmd.Env = childEnv()                      // la clé API ne doit pas être visible de la commande
 	out := newCappedBuffer(maxToolOut + 2048) // CORRIGÉ : capture bornée
 	cmd.Stdout, cmd.Stderr = out, out
 
@@ -1072,22 +1100,238 @@ func (a *Agent) gitCheckpoint(p string) {
 	exec.Command("git", "-C", a.workDir, "commit", "-m", "Auto-checkpoint: "+rel, "--", rel).Run()
 }
 
+// Prompter pose une question à l'humain. L'implémentation par défaut lit sur le
+// terminal (/dev/tty, CONIN$) et non sur stdin : le REPL et les confirmations ne
+// se volent plus les lignes tapées d'avance (audit C05).
+type Prompter interface {
+	Ask(question string) (string, bool)
+}
+
+// askInterrupt permet à Ctrl+C d'interrompre une question en attente.
+var askInterrupt = make(chan struct{}, 1)
+
+func signalAsk() {
+	select {
+	case askInterrupt <- struct{}{}:
+	default:
+	}
+}
+
+type ttyPrompter struct {
+	sc *bufio.Scanner // repli : stdin, quand il n'y a pas de terminal de contrôle
+	in *bufio.Reader
+	f  *os.File
+}
+
+func newPrompter(sc *bufio.Scanner) *ttyPrompter {
+	p := &ttyPrompter{sc: sc}
+	if f, err := os.OpenFile(ttyPath(), os.O_RDWR, 0); err == nil {
+		p.f, p.in = f, bufio.NewReader(f)
+	}
+	return p
+}
+
+func ttyPath() string {
+	if runtime.GOOS == "windows" {
+		return "CONIN$"
+	}
+	return "/dev/tty"
+}
+
+type promptAnswer struct {
+	text string
+	ok   bool
+}
+
+func (p *ttyPrompter) Ask(q string) (string, bool) {
+	fmt.Print(q)
+	if p.in == nil {
+		if !p.sc.Scan() {
+			return "", false
+		}
+		return strings.TrimSpace(p.sc.Text()), true
+	}
+	// Lecture dans une goroutine : un Ctrl+C doit interrompre la question sans
+	// exiger un Entrée supplémentaire (sinon l'utilisateur croit avoir annulé).
+	ch := make(chan promptAnswer, 1)
+	go func() {
+		s, err := p.in.ReadString('\n')
+		t := strings.TrimSpace(s)
+		ch <- promptAnswer{t, err == nil || t != ""}
+	}()
+	select {
+	case ans := <-ch:
+		return ans.text, ans.ok
+	case <-askInterrupt:
+		return "", false
+	}
+}
+
+func (p *ttyPrompter) Close() {
+	if p.f != nil {
+		_ = p.f.Close()
+	}
+}
+
 func (a *Agent) approve(action string) bool {
 	if a.godmode || a.autoApprove {
 		return true
+	}
+	if a.prompter == nil {
+		return false // pas de moyen de demander : refus (fail closed)
 	}
 	// L'animation ne doit jamais recouvrir la question : on la suspend le temps
 	// de la saisie, puis on la reprend (runLoop l'arrêtera définitivement).
 	a.pauseSpinner()
 	defer a.resumeSpinner()
-	fmt.Printf(">> %s ? [y/N] : ", sanitizeTerm(action))
-	if !a.scanner.Scan() {
-		fmt.Println("\n[refus] entrée fermée (stdin non interactif) : action refusée.")
+	ans, ok := a.prompter.Ask(">> " + sanitizeTerm(action) + " ? [y/N] : ")
+	if !ok {
+		fmt.Println("\n[refus] aucune réponse (entrée non interactive) : action refusée.")
 		return false
 	}
-	ans := strings.ToLower(strings.TrimSpace(a.scanner.Text()))
+	ans = strings.ToLower(strings.TrimSpace(ans))
 	// CORRIGÉ : défaut = NON (Entrée seule ne valide plus bash/écriture/MCP).
 	return ans == "y" || ans == "yes" || ans == "o" || ans == "oui"
+}
+
+// ==========================================
+// 9.1 FRONTIÈRES DE CONFIANCE
+// ==========================================
+
+// isSecretEnvKey reconnaît les variables d'environnement à ne jamais transmettre
+// à un processus enfant (outil shell, serveur MCP tiers) ni à caviarder.
+func isSecretEnvKey(k string) bool {
+	u := strings.ToUpper(k)
+	switch u { // exceptions : chemins et sockets, pas des secrets
+	case "SSH_AUTH_SOCK", "GPG_AGENT_INFO", "SSH_AGENT_PID", "GIT_ASKPASS":
+		return false
+	}
+	for _, marqueur := range []string{"KEY", "TOKEN", "SECRET", "PASSWORD", "PASSWD", "CREDENTIAL", "COOKIE", "AUTH"} {
+		if strings.Contains(u, marqueur) {
+			return true
+		}
+	}
+	for _, prefixe := range []string{"AWS_", "AZURE_", "GITHUB_", "GH_", "NPM_", "DOCKER_", "GOOGLE_", "OPENAI_", "ANTHROPIC_"} {
+		if strings.HasPrefix(u, prefixe) {
+			return true
+		}
+	}
+	return false
+}
+
+// childEnv construit l'environnement des processus enfants : tout l'environnement
+// sauf les variables qui ressemblent à des secrets (audit C01/C02). On ne filtre
+// pas en liste blanche : casser GOROOT/GOPATH/SSH_AUTH_SOCK serait pire que le mal.
+func childEnv(extra ...string) []string {
+	out := make([]string, 0, len(os.Environ())+len(extra))
+	for _, kv := range os.Environ() {
+		k, _, _ := strings.Cut(kv, "=")
+		if isSecretEnvKey(k) {
+			continue
+		}
+		out = append(out, kv)
+	}
+	return append(out, extra...)
+}
+
+// secretValuePattern attrape les jetons qui ressemblent à des clés d'API.
+var secretValuePattern = regexp.MustCompile(`\b(sk|pk|ghp|gho|ghu|ghs|github_pat|xox[baprs]|AKIA)[-_A-Za-z0-9]{12,}`)
+
+// collectSecrets liste les valeurs sensibles de l'environnement (pour caviardage).
+func collectSecrets() []string {
+	var out []string
+	for _, kv := range os.Environ() {
+		k, v, ok := strings.Cut(kv, "=")
+		if !ok || len(v) < 8 {
+			continue
+		}
+		if isSecretEnvKey(k) {
+			out = append(out, v)
+		}
+	}
+	// Les valeurs les plus longues d'abord : évite qu'une sous-chaîne
+	// d'un secret en masque un autre plus long.
+	sort.Slice(out, func(i, j int) bool { return len(out[i]) > len(out[j]) })
+	return out
+}
+
+// redact caviarde les secrets connus dans une sortie d'outil avant qu'elle
+// ne parte vers le modèle (donc vers le fournisseur d'API).
+func (a *Agent) redact(s string) string {
+	for _, v := range a.secrets {
+		if v != "" {
+			s = strings.ReplaceAll(s, v, "[REDACTED]")
+		}
+	}
+	return secretValuePattern.ReplaceAllString(s, "[REDACTED]")
+}
+
+var sensitiveNames = map[string]bool{
+	".npmrc": true, ".netrc": true, ".pgpass": true, ".git-credentials": true,
+	"credentials": true, "auth.json": true, "secrets": true,
+	"id_rsa": true, "id_dsa": true, "id_ecdsa": true, "id_ed25519": true,
+}
+
+var sensitiveSuffixes = []string{
+	".pem", ".key", ".p12", ".pfx", ".keystore", ".jks", ".kdbx", ".asc", ".ppk",
+}
+
+// isSensitivePath reconnaît les fichiers dont la lecture peut exfiltrer un secret.
+func isSensitivePath(rel string) bool {
+	p := strings.ToLower(filepath.ToSlash(filepath.Clean(rel)))
+	base := filepath.Base(p)
+	if base == ".env" || base == ".envrc" {
+		return true
+	}
+	if strings.HasPrefix(base, ".env.") {
+		// Les modèles d'exemple ne contiennent pas de secret ; les copies réelles, si.
+		for _, suffixe := range []string{".example", ".sample", ".template", ".dist"} {
+			if strings.HasSuffix(base, suffixe) {
+				return false
+			}
+		}
+		return true
+	}
+	if sensitiveNames[base] {
+		return true
+	}
+	for _, s := range sensitiveSuffixes {
+		if strings.HasSuffix(base, s) {
+			return true
+		}
+	}
+	for _, d := range []string{
+		".ssh/", ".aws/", ".gnupg/", ".docker/config.json",
+		".git/config", ".git-credentials", ".config/gcloud/",
+	} {
+		if strings.Contains(p, d) {
+			return true
+		}
+	}
+	return false
+}
+
+// protectedWriteReason bloque les écritures qui contourneraient une garde
+// (configuration d'exécution, hooks git, fichiers de secrets) — audit C07.
+func protectedWriteReason(rel string) string {
+	p := strings.ToLower(filepath.ToSlash(filepath.Clean(rel)))
+	switch {
+	case p == "mcp.json":
+		return "configuration d'exécution : un serveur y est lancé au prochain démarrage"
+	case p == ".gitignore" || p == ".gitattributes":
+		return "peut réactiver le versionnement de secrets"
+	case p == ".env" || p == ".envrc" || strings.HasPrefix(p, ".env."):
+		return "fichier de secrets : à créer à la main"
+	case p == ".git" || strings.HasPrefix(p, ".git/"):
+		return "zone interne du dépôt git (hooks, config)"
+	}
+	if isSensitivePath(p) {
+		return "fichier de secrets ou de clés"
+	}
+	if strings.HasPrefix(p, "../") {
+		return "hors du répertoire de travail"
+	}
+	return ""
 }
 
 const (
@@ -1207,11 +1451,80 @@ func (a *Agent) compactHistory() {
 		omis, total, budget, capT, pinned == 1)
 }
 
+// sessionDir place les sessions hors du dossier temporaire partagé
+// (audit C06) : XDG_CONFIG_HOME, ou ~/.config, sinon repli sur $TMPDIR.
+func sessionDir() string {
+	if d, err := os.UserConfigDir(); err == nil && d != "" {
+		return filepath.Join(d, "ds-agent", "sessions")
+	}
+	return filepath.Join(os.TempDir(), "ds-agent-sessions")
+}
+
+// secureMkdirAll crée le dossier en 0700 et refuse qu'il soit un lien.
+func secureMkdirAll(dir string) error {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	info, err := os.Lstat(dir)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("%s est un lien symbolique", dir)
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("%s n'est pas un dossier", dir)
+	}
+	return os.Chmod(dir, 0o700)
+}
+
 func sessionPath(w string) string {
 	h := sha256.Sum256([]byte(w))
-	d := filepath.Join(os.TempDir(), "ds-sessions")
-	os.MkdirAll(d, 0700)
+	d := sessionDir()
+	if err := secureMkdirAll(d); err != nil {
+		fmt.Fprintf(os.Stderr, "[session] %s inutilisable (%v) : repli sur le dossier temporaire\n", d, err)
+		d = filepath.Join(os.TempDir(), "ds-agent-sessions")
+		_ = secureMkdirAll(d)
+	}
 	return filepath.Join(d, fmt.Sprintf("%x.json", h[:8]))
+}
+
+// writeFileAtomic écrit dans un temporaire du même dossier puis renomme.
+// Deux garanties : jamais de fichier tronqué si le processus meurt, et le
+// rename remplace le lien symbolique au lieu de le suivre (pas d'écriture
+// arbitraire via un lien préexistant).
+func writeFileAtomic(path string, data []byte, perm os.FileMode) error {
+	dir := filepath.Dir(path)
+	tmp, err := os.CreateTemp(dir, ".ds-agent-*.tmp")
+	if err != nil {
+		return err
+	}
+	name := tmp.Name()
+	defer func() {
+		if name != "" {
+			_ = os.Remove(name)
+		}
+	}()
+	if err := tmp.Chmod(perm); err != nil {
+		tmp.Close()
+		return err
+	}
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(name, path); err != nil {
+		return err
+	}
+	name = ""
+	return nil
 }
 
 func (a *Agent) loadSession() {
@@ -1225,8 +1538,14 @@ func (a *Agent) loadSession() {
 }
 
 func (a *Agent) saveSession() {
-	data, _ := json.Marshal(a.history)
-	os.WriteFile(a.sessionPath, data, 0600)
+	data, err := json.Marshal(a.history)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[session] non sauvegardée (encodage) : %v\n", err)
+		return
+	}
+	if err := writeFileAtomic(a.sessionPath, data, 0o600); err != nil {
+		fmt.Fprintf(os.Stderr, "[session] non sauvegardée : %v\n", err)
+	}
 }
 
 // ✅ CORRIGÉ : `newTool` utilise maintenant `ToolFunction` (le type nommé).

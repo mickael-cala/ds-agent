@@ -44,7 +44,12 @@ Pour tester sans réseau : `DEEPSEEK_API_BASE=http://127.0.0.1:PORT` + `tools/pa
    plus un test. Un outil non testé n'est pas terminé.
 8. **Compaction à chaque tour** dans `runLoop` : elle doit rester avant `callChat`,
    conserver la première consigne et ne jamais laisser un `Message{tool}` orphelin.
-9. **Licence** : tout nouveau fichier source commence par
+9. **Frontières de confiance** : ne jamais lancer un process enfant avec `os.Environ()`
+   (utiliser `childEnv()`), ne jamais imprimer une valeur d'origine distante sans
+   `sanitizeTerm()`/`snippet()`, ne jamais écrire un fichier sans `writeFileAtomic()`.
+10. **Chemins interdits** : `mcp.json`, `.git/**`, `.env*`, `.gitignore` et les fichiers de
+   clés sont refusés à l'écriture (`protectedWriteReason`) ; leur lecture exige `approve`.
+11. **Licence** : tout nouveau fichier source commence par
    `// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Commercial`.
    Ne pas modifier `LICENSE` (texte AGPL canonique) ni retirer cette double licence.
 
