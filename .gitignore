@@ -1,8 +1,8 @@
 # ==========================================
 # Binaires compilés (jamais versionnés)
 # ==========================================
-ds-agent
-ds-agent.exe
+/ds-agent
+/ds-agent.exe
 *.exe
 *.dll
 *.so
