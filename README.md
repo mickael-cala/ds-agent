@@ -25,6 +25,7 @@ Fichier principal : `main.go` (agent monolithique, ~1 200 lignes). Aucun framewo
 |---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | schéma du flux, découpage de `main.go`, décisions de conception |
 | [STATUS.md](STATUS.md) | état de santé, plateformes, dette technique, vérifications |
+| [AUDIT.md](AUDIT.md) | audit pédagogique & paranoïaque : dev, cyber, UI/UX, scénarios d'attaque, plan d'action |
 | [ROADMAP.md](ROADMAP.md) | ce qui est fait, ce qui vient (v0.2 → v1.0), non-objectifs |
 | [ERRATA.md](ERRATA.md) | bugs corrigés (avec test de non-régression) et défauts ouverts |
 | [FAQ.md](FAQ.md) | questions fréquentes (installation, coût, MCP, sécurité) |
@@ -230,6 +231,7 @@ Le sous-projet [`audit_api/`](audit_api/README.md) est une micro-API Go 1.22
 ├── ANALYSE_main.md         # analyse technique détaillée de main.go
 ├── ARCHITECTURE.md         # flux interne & conception
 ├── STATUS.md               # état du projet
+├── AUDIT.md                # audit dev / cyber / UI-UX (pédagogique & paranoïaque)
 ├── ROADMAP.md              # feuille de route
 ├── ERRATA.md               # bugs corrigés / défauts connus
 ├── AGENTS.md               # consignes pour agents IA

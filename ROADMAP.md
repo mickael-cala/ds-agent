@@ -37,7 +37,8 @@ Légende : ✅ fait · 🚧 en cours · ⬜ prévu · 💡 idée (non engagée)
 
 ## v0.3 — Sécurité 🚧
 
-- ⬜ `local_web_fetch` : liste blanche de domaines, refus des IP privées / link-local (SSRF)
+- ⬜ `local_web_fetch` : validation locale (schémas `http`/`https`, liste blanche de
+  domaines) — le fetch est délégué à l'API, le SSRF local n'est donc pas le risque principal
 - ⬜ Journal d'audit local (JSONL) : outil, arguments, décision d'approbation, horodatage
 - ⬜ Politique d'approbation par outil (ex. `local_bash` toujours confirmé, même en `/auto`)
 - ⬜ Sandbox optionnelle : `bwrap`/`nsjail` sous Linux, `sandbox-exec` sous macOS

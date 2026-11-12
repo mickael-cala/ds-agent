@@ -176,12 +176,16 @@ de session (nom = SHA-256 du répertoire) : écrasements mutuels, historique inc
 
 **Parade.** Une seule instance par répertoire.
 
-### ERRATA-108 — `local_web_fetch` sans liste blanche 🟠
+### ERRATA-108 — `local_web_fetch` sans liste blanche 🟡
 
-**Symptôme.** SSRF : l'agent peut atteindre `http://127.0.0.1`, des IP privées ou
-link-local si le modèle y est incité (prompt injection depuis une page lue).
+**Symptôme.** L'URL demandée par le modèle est transmise telle quelle au fournisseur, sans
+validation de schéma ni de domaine. Pas de SSRF **local** : le fetch est exécuté par l'API
+(`main.go:903-929`, `POST /v1/tools/fetch`), pas par votre machine — correction d'une
+première rédaction erronée de cet erratum. Le risque résiduel : atteindre des cibles
+internes **du côté du fournisseur**, et lui transmettre toute URL lue.
 
-**Parade.** Ne pas exposer l'agent à des entrées non fiables ; correctif en ROADMAP v0.3.
+**Parade.** Ne pas laisser l'agent lire des pages non fiables en contexte privilégié ;
+validation locale des schémas (`http`/`https`) et des domaines prévue en ROADMAP v0.3.
 
 ### ERRATA-109 — `go.mod` déclare `go 1.27.1` 🟡
 

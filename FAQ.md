@@ -105,8 +105,10 @@ configurée). Aucune télémétrie propre au projet. Pour du code sensible, poin
 `DEEPSEEK_API_BASE` vers un modèle local.
 
 **`local_web_fetch` peut-il viser `localhost` ?**
-Oui, il n'y a pas de liste blanche (ERRATA-108) : ne laissez pas l'agent lire des pages
-non fiables en contexte privilégié.
+Non : la requête est déléguée à l'API (`POST /v1/tools/fetch`), c'est le fournisseur qui
+fetch l'URL, pas votre machine. En revanche l'URL et le contenu transitent chez lui, sans
+liste blanche (ERRATA-108) : ne laissez pas l'agent lire des pages non fiables en contexte
+privilégié.
 
 ## Développement
 
