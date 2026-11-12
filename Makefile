@@ -7,7 +7,7 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
 .DEFAULT_GOAL := help
-.PHONY: help build test lint secrets banc e2e check run clean fmt
+.PHONY: help build test cover fuzz lint secrets banc e2e check run clean fmt
 
 help: ## affiche cette aide
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*## "}; {printf "  make %-8s %s\n", $$1, $$2}'
@@ -28,6 +28,16 @@ lint: ## gofmt + go vet
 test: ## tests unitaires
 	go test -count=1 ./...
 
+cover: ## couverture des tests (seuil bloquant : 65 %)
+	go test -count=1 -coverprofile=cover.out ./cmd/...
+	@total=$$(go tool cover -func=cover.out | tail -1 | awk '{print $$3}' | tr -d '%'); \
+	awk -v t=$$total 'BEGIN{ printf "couverture : %.1f %% (seuil 65 %%)\n", t; exit (t+0 >= 65 ? 0 : 1) }'
+
+fuzz: ## fuzzing court (10 s par cible, Linux uniquement)
+	go test -run=^$$ -fuzz=FuzzSalvageJSON -fuzztime=10s ./cmd/...
+	go test -run=^$$ -fuzz=FuzzDecodeToolArguments -fuzztime=10s ./cmd/...
+	go test -run=^$$ -fuzz=FuzzTruncate -fuzztime=10s ./cmd/...
+
 secrets: ## aucun jeton ni fichier interdit versionné
 	./scripts/check-secrets.sh
 
@@ -37,7 +47,7 @@ banc: ## banc hostile (16 scénarios, hors ligne)
 e2e: ## bout-en-bout (binaire réel + mock)
 	bash tests/e2e.sh
 
-check: lint test secrets banc e2e ## tout ce qui doit être vert avant une PR
+check: lint test cover secrets banc e2e ## tout ce qui doit être vert avant une PR
 
 clean: ## binaire, sessions, journal d'audit
 	./clean.sh

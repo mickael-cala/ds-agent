@@ -38,7 +38,7 @@ Les invariants détaillés sont dans [AGENTS.md](AGENTS.md) ; ils s'appliquent a
 
 | Commande | Objet |
 |---|---|
-| `make test` (`go test ./...`) | 57 tests unitaires (compaction, sécurité, outils, sessions) |
+| `make test` (`go test ./...`) | 78 tests unitaires (compaction, sécurité, outils, sessions) |
 | `go test -race ./...` | même chose sous détecteur de course (CI Linux ; indisponible sur `android/arm64`) |
 | `make banc` (`bash tests/paranoid.sh`) | 16 scénarios hostiles (429, HTML, JSON tronqué, 40 Mo, SSE…), code de sortie = nombre d'échecs |
 | `make e2e` (`bash tests/e2e.sh`) | bout-en-bout : binaire réel + mock, boucle outil → réponse |

@@ -6,6 +6,21 @@ publié sous forme de release binaire : les versions ci-dessous décrivent l'ét
 
 ## [Non publié]
 
+### Ajouté — tests, couverture et fuzzing (v0.3, T1–T5)
+
+- **Couverture 55,9 % → 67,7 %**, seuil **bloquant à 65 %** en CI et via `make cover`.
+- **`executeTool` en table** : dispatch, arguments JSON invalides, outil inconnu, argument
+  manquant, écriture annulée, refus de chemin.
+- **`runLoop` testée contre un faux backend** : réponse directe, appel d'outil puis réponse,
+  annulation par `context`, plafond de dépense, backend toujours en 500 ; `chatOnce` en table
+  (succès, 429 + `Retry-After`, HTML, JSON tronqué, `choices` vide, erreur dans un 200, 400).
+- **`safePath` en table** : `..`, symlink sortant, symlink interne, chemin absolu (réinterprété
+  dans le bac à sable — documenté par le test).
+- **Fuzzing** : `FuzzSalvageJSON`, `FuzzDecodeToolArguments` (nouvelle fonction extraite,
+  fuzzable), `FuzzTruncate` (invariant UTF-8 + borne) — 30 s cumulées en CI.
+- **`TestMain`** force `apiBase` sur un port fermé : plus aucun test ne peut appeler la vraie API.
+- Corrigé : `local_web_search` acceptait un `query` absent (payload vide envoyé au fournisseur).
+
 ### Modifié — racine réorganisée (v0.3, B5)
 
 - Paquet `main` déplacé dans **`cmd/ds-agent/`** (8 fichiers + `sandbox`, `audit`, `proc_*`,
@@ -21,7 +36,7 @@ publié sous forme de release binaire : les versions ci-dessous décrivent l'ét
 
 - `main.go` : 2 230 → **344 lignes**. Nouveaux fichiers : `types.go`, `llm.go`, `tools.go`,
   `trust.go`, `session.go`, `ui.go`, `mcp.go`. Aucun fichier > 550 lignes.
-- Comportement inchangé : 57 tests, 16 scénarios hostiles, e2e 2/2, `--help`/`--version`
+- Comportement inchangé : 78 tests, 16 scénarios hostiles, e2e 2/2, `--help`/`--version`
   identiques, binaire de même taille à 1 % près.
 
 ### Modifié — consolidation documentaire

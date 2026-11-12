@@ -56,3 +56,7 @@ Nouveau\ Document\ texte.txt
 
 # Sauvegardes locales
 .backups/
+
+# Couverture
+cover.out
+coverage.html

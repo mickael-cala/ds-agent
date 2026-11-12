@@ -38,8 +38,20 @@ jobs:
       - name: Aucun secret versionné
         run: bash scripts/check-secrets.sh
 
-      - name: Tests unitaires (race)
-        run: go test -race -count=1 ./...
+      - name: Tests unitaires (race, couverture)
+        run: go test -race -count=1 -coverprofile=cover.out ./cmd/...
+
+      - name: Couverture (seuil 65 %)
+        run: |
+          go tool cover -func=cover.out | tail -1
+          total=$(go tool cover -func=cover.out | tail -1 | awk '{print $3}' | tr -d '%')
+          awk -v t="$total" 'BEGIN{ if (t+0 < 65) { printf "couverture %.1f%% < 65%%\n", t; exit 1 } }'
+
+      - name: Fuzzing (30 s cumulées)
+        run: |
+          go test -run='^$' -fuzz=FuzzSalvageJSON -fuzztime=10s ./cmd/...
+          go test -run='^$' -fuzz=FuzzDecodeToolArguments -fuzztime=10s ./cmd/...
+          go test -run='^$' -fuzz=FuzzTruncate -fuzztime=10s ./cmd/...
 
       - name: Tests du sous-projet audit_api
         run: cd audit_api && go test -race -count=1 ./...

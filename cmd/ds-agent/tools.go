@@ -61,16 +61,27 @@ func getStringArg(args map[string]any, key string) (string, error) {
 	return str, nil
 }
 
-func (a *Agent) executeTool(ctx context.Context, tc ToolCall) (string, error) {
-	a.lastDecision = "sans" // sera fixé par approve() si une confirmation a lieu
+// decodeToolArguments décode les arguments d'un tool call. Extrait pour être fuzzé :
+// c'est une entrée entièrement contrôlée par le modèle.
+func decodeToolArguments(raw string) (map[string]any, error) {
+	if strings.TrimSpace(raw) == "" {
+		return map[string]any{}, nil
+	}
 	var args map[string]any
-	if raw := strings.TrimSpace(tc.Function.Arguments); raw != "" {
-		if err := json.Unmarshal([]byte(raw), &args); err != nil {
-			return "", fmt.Errorf("arguments JSON invalides pour %s : %w", tc.Function.Name, err)
-		}
+	if err := json.Unmarshal([]byte(raw), &args); err != nil {
+		return nil, err
 	}
 	if args == nil {
-		args = map[string]any{}
+		return map[string]any{}, nil
+	}
+	return args, nil
+}
+
+func (a *Agent) executeTool(ctx context.Context, tc ToolCall) (string, error) {
+	a.lastDecision = "sans" // sera fixé par approve() si une confirmation a lieu
+	args, err := decodeToolArguments(tc.Function.Arguments)
+	if err != nil {
+		return "", fmt.Errorf("arguments JSON invalides pour %s : %w", tc.Function.Name, err)
 	}
 
 	switch tc.Function.Name {
@@ -304,7 +315,11 @@ func (a *Agent) toolBash(ctx context.Context, args map[string]any) (string, erro
 }
 
 func (a *Agent) toolWebSearch(ctx context.Context, args map[string]any) (string, error) {
-	return a.postDeepSeekTool(ctx, "/v1/tools/search", args, func(raw []byte) (string, error) {
+	requete, err := getStringArg(args, "query")
+	if err != nil {
+		return "", err
+	}
+	return a.postDeepSeekTool(ctx, "/v1/tools/search", map[string]any{"query": requete}, func(raw []byte) (string, error) {
 		var resp SearchResponse
 		if json.Unmarshal(raw, &resp) != nil || len(resp.Results) == 0 {
 			return truncate("RAW JSON:\n"+string(raw), maxToolOut), nil

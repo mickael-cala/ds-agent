@@ -28,8 +28,8 @@ cases sont cochées : il est fini quand son critère est vérifié en CI.
 
 | Indicateur | Valeur |
 |---|---|
-| Tests unitaires | ✅ 57/57 (`go test ./...`) |
-| Couverture | ⚠️ 55,9 % (objectif v0.3 : ≥ 65 %, `T1`) |
+| Tests unitaires | ✅ 78 (dont 3 cibles de fuzzing exercées en CI) |
+| Couverture | ⚠️ 67,7 % (objectif v0.3 : ≥ 65 %, `T1`) |
 | Banc hostile | ✅ 16 scénarios, 0 échec critique |
 | Bout-en-bout | ✅ 2 scénarios (binaire réel + mock) |
 | CI | ✅ `gofmt`, `vet`, `check-secrets`, `-race`, e2e, `govulncheck`, build 3 OS |
@@ -55,7 +55,7 @@ leur traduction en jalons, dans l'ordre où elles se traitent (les enablers d'ab
 | 2 | Contexte faible (pas de carte du dépôt, tokens estimés) | **v0.6** | `X1`–`X6` |
 | 3 | Sécurité = hygiène, pas confinement ; injection non mitigée | **v0.3** (threat model) + **v0.4** (mesures) | `S1`–`S7` |
 | 4 | `main.go` monolithique (2 230 lignes, 76 fonctions) | **v0.3** | `B1`–`B4` |
-| 5 | Couverture 55,9 %, chemins critiques testés indirectement, API jamais validée | **v0.3** (mesure) + **v1.0** (contrat) | `T1`–`T5` |
+| 5 | Couverture 67,7 %, chemins critiques testés indirectement, API jamais validée | **v0.3** (mesure) + **v1.0** (contrat) | `T1`–`T5` |
 | 6 | Dérive documentaire (16 `.md`, compteurs faux, `ANALYSE` périmé) | **v0.3** | `D1`–`D4` |
 
 ---
@@ -74,17 +74,17 @@ v0.4→v0.6 empilent des fonctionnalités sur un socle qu'on ne sait pas tester.
 - ✅ `B4` `main.go` = 344 lignes (config, prompt, `main`, REPL, drapeaux)
 - ✅ `B5` Paquet `main` déplacé dans `cmd/ds-agent/`, docs de programme dans `docs/`,
   `Makefile` à la racine (5 `.md` à la racine)
-- **Critère de sortie** : ✅ aucun fichier > 550 lignes, 57 tests + 16 scénarios hostiles +
+- **Critère de sortie** : ✅ aucun fichier > 550 lignes, 78 tests + 16 scénarios hostiles +
   e2e verts, binaire identique en comportement (`--help`, `--version`, e2e).
 
 ### Tests & couverture (`T`)
 
-- ⬜ `T1` `go test -cover` dans la CI, seuil bloquant **≥ 65 %** sur `main` (hors `tools/paranoid`)
-- ⬜ `T2` Table de tests pour `executeTool` (dispatch, args invalides, outil inconnu, annulation)
-- ⬜ `T3` Tests de la boucle (`runLoop`) avec faux backend : succès, erreur, annulation, plafond
-- ⬜ `T4` `safePath` en table : `..`, symlink sortant, symlink interne, chemin absolu, casse
-- ⬜ `T5` `go test -fuzz` sur `salvageJSON` et `decodeToolCalls` (30 s par fuzz en CI)
-- **Critère de sortie** : couverture ≥ 65 %, aucune fonction critique sans test direct.
+- ✅ `T1` Couverture bloquante **≥ 65 %** en CI (`make cover`) — 67,7 % atteints
+- ✅ `T2` Table de tests `executeTool` (dispatch, args invalides, outil inconnu, annulation)
+- ✅ `T3` Boucle testée contre un faux backend : réponse directe, outil, annulation, plafond, 500 persistant
+- ✅ `T4` `safePath` en table : `..`, symlink sortant, symlink interne, chemin absolu réinterprété
+- ✅ `T5` Fuzzing : `FuzzSalvageJSON`, `FuzzDecodeToolArguments`, `FuzzTruncate` (30 s en CI)
+- **Critère de sortie** : ✅ couverture 67,7 % (bloquante en CI), boucle/dispatch/`safePath` testés directement.
 
 ### Sécurité : le document avant les mesures (`S`)
 

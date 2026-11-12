@@ -16,7 +16,7 @@ dépendance (`mcp-go`), aucun framework, aucune base de données. Sources de vé
 ```bash
 go build -o ds-agent ./cmd/ds-agent/cmd/ds-agent                       # build
 go build -ldflags "-X main.version=x.y.z" -o ds-agent .   # build versionné
-go test -count=1 ./...                       # 57 tests
+go test -count=1 ./...                       # 78 tests
 gofmt -l -w . && go vet ./...                # format + analyse
 bash tests/paranoid.sh ; echo $?             # banc hostile — doit valoir 0
 bash tests/e2e.sh                            # bout-en-bout (binaire + mock)

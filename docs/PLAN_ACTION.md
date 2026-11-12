@@ -25,12 +25,13 @@ Règles du jeu :
 | 8 | Finaliser v0.2 | 5 | ✅ fait | « Sprint 8 » |
 | 9 | Découpage v0.3 + consolidation docs | 5 | ✅ fait | « Sprint 9 » |
 | 10 | Réorganisation de la racine | 5 | ✅ fait | « Sprint 10 » |
+| 11 | Tests, couverture, fuzzing (v0.3) | 5 | ✅ fait | « Sprint 11 » |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
 Les hashs de commits ne sont **pas** stockés ici (ils changent à chaque rebase) : se référer
 aux messages de commit. La suite du programme est dans [ROADMAP.md](ROADMAP.md) (v0.3 → v1.0).
 
-**Bilan : 45/45 items livrés**, 57 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
+**Bilan : 50/50 items livrés**, 78 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
 CI multi-plateforme, documentation à jour.
 
 ---
@@ -130,7 +131,7 @@ Objectif : rendre les garde-fous **prouvables par une machine**, pas seulement p
 | 9.1 | `types.go`, `llm.go`, `tools.go` extraits de `main.go` | B1, B2 | `wc -l` : 181 / 247 / 412 | ✅ |
 | 9.2 | `trust.go`, `session.go`, `ui.go`, `mcp.go` extraits | B3 | 205 / 281 / 536 / 92 | ✅ |
 | 9.3 | `main.go` ≤ 400 lignes | B4 | 344 lignes | ✅ |
-| 9.4 | Comportement inchangé | — | 57 tests, 16 scénarios hostiles, e2e 2/2, `--version`, `--help` | ✅ |
+| 9.4 | Comportement inchangé | — | 78 tests, 16 scénarios hostiles, e2e 2/2, `--version`, `--help` | ✅ |
 | 9.5 | Consolidation documentaire (9 `.md` à la racine) | D1 | suppression/fusion, liens vérifiés | ✅ |
 
 ## Sprint 10 — « racine respirable »
@@ -142,6 +143,19 @@ Objectif : rendre les garde-fous **prouvables par une machine**, pas seulement p
 | 10.3 | `Makefile` : `build`, `test`, `lint`, `secrets`, `banc`, `e2e`, `check`, `clean` | — | `make help` | ✅ |
 | 10.4 | Scripts, CI et bancs alignés sur `./cmd/ds-agent` | — | banc 16/16, e2e 2/2, CI verte | ✅ |
 | 10.5 | Sauvegardes locales hors racine (`.backups/`, ignoré) | — | `ls` racine | ✅ |
+
+## Sprint 11 — « v0.3 : la CI devient un filet »
+
+| # | Item | Réf. | Preuve | Statut |
+|---|---|---|---|---|
+| 11.1 | Couverture bloquante ≥ 65 % | T1 | 67,7 %, `make cover`, étape CI | ✅ |
+| 11.2 | Table `executeTool` (dispatch, JSON invalide, outil inconnu, annulation) | T2 | `TestExecuteToolDispatch` + 6 tests d'outils | ✅ |
+| 11.3 | `runLoop` contre un faux backend (5 scénarios) + `chatOnce` en table | T3 | `TestRunLoop*`, `TestChatOnceReponses`, `TestCallChat…` | ✅ |
+| 11.4 | `safePath` en table | T4 | `TestSafePath` (valides / `..` / symlinks) | ✅ |
+| 11.5 | Fuzzing des entrées du modèle | T5 | `FuzzSalvageJSON`, `FuzzDecodeToolArguments`, `FuzzTruncate` | ✅ |
+
+Effets de bord corrigés au passage : `toolWebSearch` acceptait un `query` absent ;
+`TestMain` interdit tout accès réseau réel pendant les tests.
 
 ## Réserve (non planifié)
 
