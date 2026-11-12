@@ -15,10 +15,12 @@ Règles du jeu :
 
 | Sprint | Thème | Items | Statut | Commit |
 |---|---|---|---|---|
-| 1 | Arrêter de mentir à l'opérateur | 5 | ✅ fait | `2cf99df` |
-| 2 | Frontières de confiance | 5 | ✅ fait | `5c1b46e` |
-| 3 | Exploitation & traçabilité | 5 | ✅ fait | `5b713f3` |
-| 4 | Confort & pilotage | 5 | ✅ fait | `082b8eb` |
+| 1 | Arrêter de mentir à l'opérateur | 5 | ✅ fait | `6abfbf9` |
+| 2 | Frontières de confiance | 5 | ✅ fait | `6a7d90f` |
+| 3 | Exploitation & traçabilité | 5 | ✅ fait | `3bf173e` |
+| 4 | Confort & pilotage | 5 | ✅ fait | `8e75ab9` |
+| 5 | Confiance vérifiable (hors plan initial) | 5 | ✅ fait | `2e69ceb` |
+| 6 | Renommage du module & publication | 5 | 🚧 4/5 (push en attente d'auth) | `0fb4ce4` |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
 **Bilan : 25/25 items livrés**, 43 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
@@ -91,7 +93,7 @@ Objectif : rendre les garde-fous **prouvables par une machine**, pas seulement p
 | 6.2 | `PUBLISHING.md` : création du dépôt, auth, contrôles, push, après-push | — | relecture | ✅ |
 | 6.3 | Application au compte réel : `mickael-cala` | D01 | `head -1 go.mod` → `github.com/mickael-cala/ds-agent` | ✅ |
 | 6.4 | Réécriture des auteurs des commits | — | `git log --format='%an <%ae>'` | ✅ |
-| 6.5 | Push, CI verte, badge aligné, protection de branche | C10 | onglet Actions | ⬜ auth GitHub requise |
+| 6.5 | Push, CI verte, badge aligné, protection de branche | C10 | onglet Actions | ⬜ bloqué : aucune authentification GitHub sur cette machine |
 
 ## Réserve (non planifié)
 

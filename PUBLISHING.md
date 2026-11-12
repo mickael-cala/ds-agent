@@ -99,11 +99,20 @@ platform.deepseek.com — elle a existé en clair sur ce disque.
 
 ## 6. Publier
 
+Le remote est déjà configuré :
+
 ```bash
-git remote add origin https://github.com/<compte>/ds-agent.git   # ou git@github.com:…
-git branch -M main
+git remote -v      # origin  https://github.com/mickael-cala/ds-agent.git
+```
+
+Il reste à créer le dépôt (vide) sur GitHub, puis :
+
+```bash
 git push -u origin main
 ```
+
+> `git ls-remote origin` demande déjà un mot de passe : soit le dépôt n'existe pas encore,
+> soit il est privé. Les deux sont normaux avant l'étape §1.
 
 ## 7. Après le push
 
