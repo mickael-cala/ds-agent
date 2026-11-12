@@ -3,6 +3,7 @@
 [![Go](https://img.shields.io/badge/Go-%E2%89%A5%201.22-00ADD8)](https://go.dev)
 [![Licence](https://img.shields.io/badge/licence-AGPL--3.0%20%7C%20commercial-blue)](LICENSING.md)
 [![Statut](https://img.shields.io/badge/statut-v0.2.0-orange)](STATUS.md)
+[![Release](https://img.shields.io/github/v/release/mickael-cala/ds-agent)](../../releases/latest)
 [![CI](https://github.com/mickael-cala/ds-agent/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 
 Agent de codage en terminal, écrit en Go, propulsé par l'API **DeepSeek**.
@@ -93,6 +94,14 @@ set -a; . ./.env; set +a
 # build + lancement
 go build -ldflags="-s -w" -o ds-agent .
 ./ds-agent
+```
+
+Ou depuis une release publiée (binaires linux/amd64, linux/arm64, darwin/amd64, darwin/arm64,
+windows/amd64 + `SHA256SUMS`) :
+
+```bash
+curl -LO https://github.com/mickael-cala/ds-agent/releases/latest/download/ds-agent_v0.2.0_linux_amd64
+chmod +x ds-agent_v0.2.0_linux_amd64 && ./ds-agent_v0.2.0_linux_amd64 --help
 ```
 
 Ou via le script fourni (build + run) :

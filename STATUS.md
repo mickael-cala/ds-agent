@@ -25,6 +25,7 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 | Binaire | 8,4 Mio, `-ldflags="-s -w"`, aucune dépendance CGO |
 | Licence | ✅ double AGPL-3.0 / commercial (voir [LICENSING.md](LICENSING.md)) |
 | Module Go | ✅ `github.com/mickael-cala/ds-agent` (+ `…/audit_api`) |
+| Version publiée | ✅ `v0.2.0` — 5 binaires + `SHA256SUMS` sur la page Releases |
 
 ## Ce qui fonctionne
 

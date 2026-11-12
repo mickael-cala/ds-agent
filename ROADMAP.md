@@ -33,7 +33,8 @@ Légende : ✅ fait · 🚧 en cours · ⬜ prévu · 💡 idée (non engagée)
 - ✅ Streaming SSE assumé comme non supporté (rejet explicite, documenté)
 - ✅ Timeouts configurables : `DEEPSEEK_BASH_TIMEOUT`, `DEEPSEEK_MCP_TIMEOUT`, `DEEPSEEK_HTTP_TIMEOUT`
 - ✅ CI GitHub Actions : `gofmt`, `go vet`, `go test -race`, e2e, build 3 OS, `govulncheck`
-- 🚧 `goreleaser` : release manuelle v0.2.0 avec binaires + `SHA256SUMS` ; automatisation à venir
+- ✅ Release `v0.2.0` : binaires linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64 + `SHA256SUMS`
+- ⬜ `goreleaser` : automatisation du build de release depuis un tag (v0.3)
 
 ## v0.3 — Sécurité 🚧
 
