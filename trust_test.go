@@ -35,9 +35,9 @@ func TestChildEnvSansSecrets(t *testing.T) {
 func TestRedactSecrets(t *testing.T) {
 	t.Setenv("EXEMPLE_SECRET", "s3cr3t-de-test-abcdefgh")
 	a := &Agent{secrets: collectSecrets()}
-	in := "valeur=s3cr3t-de-test-abcdefgh et cle sk-abcdefghijklmnop1234 fin"
+	in := "valeur=s3cr3t-de-test-abcdefgh et cle sk-abcdefghijklmnop1234 fin" // check-secrets:allow (jeton factice)
 	out := a.redact(in)
-	if strings.Contains(out, "s3cr3t-de-test-abcdefgh") || strings.Contains(out, "sk-abcdefghijklmnop1234") {
+	if strings.Contains(out, "s3cr3t-de-test-abcdefgh") || strings.Contains(out, "sk-abcdefghijklmnop1234") { // check-secrets:allow
 		t.Fatalf("secret non caviardé : %q", out)
 	}
 	if !strings.Contains(out, "[REDACTED]") {

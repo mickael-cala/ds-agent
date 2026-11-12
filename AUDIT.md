@@ -169,13 +169,13 @@ quelle build tourne en production, impossible de scripter un one-shot.
 **Correctif** : `var version = "dev"` + `-ldflags "-X main.version=…"`, et 4 flags
 (`-version`, `-dir`, `-model`, `-auto`).
 
-### D14 — Le numéro de ligne contamine les éditions 🟡
+### D14 — Le numéro de ligne contamine les éditions 🟡 — ✅ corrigé (sprint 7)
 `toolReadFile` préfixe chaque ligne `N| ` (`768-771`). Le modèle recopie volontiers cette
 colonne dans `search_block` → `toolEditFile` répond « search_block introuvable » (`817-819`).
 **Correctif** : soit ne pas numéroter, soit documenter explicitement « ne recopie pas `N| ` »
 dans la description de l'outil, et accepter un `search_block` non numéroté (normalisation).
 
-### D15 — Dérive documentaire 🔵
+### D15 — Dérive documentaire 🔵 — ✅ corrigé (sprint 7)
 `ANALYSE_main.md` décrit un `main.go` de 929 lignes (1 284 aujourd'hui) avec des numéros de
 ligne obsolètes ; `tests/PARANOID.md` liste 14 scénarios alors que le mock en gère 15
 (`[[noauth]]` absent du tableau). **Correctif** : mention « document historique, lignes
@@ -285,7 +285,7 @@ pas de provenance de build (`-trimpath`, `-buildvcs`), pas de signature de relea
 **Correctif** : `govulncheck ./...` en CI, Dependabot, `goreleaser` + `cosign` quand les
 binaires seront publiés.
 
-### C11 — `local_web_*` : correction d'une erreur de ma documentation 🟡
+### C11 — `local_web_*` : correction d'une erreur de ma documentation 🟡 — ✅ corrigé (sprint 7)
 `postDeepSeekTool` (`903-929`) poste vers `apiBase + "/v1/tools/fetch"` et
 `"/v1/tools/search"`. Le fetch est donc exécuté **par le fournisseur**, pas en local : il
 n'y a pas de SSRF vers `127.0.0.1` de votre machine (mon ERRATA-108 était inexact, corrigé).
@@ -302,7 +302,7 @@ l'historique. Un modèle qui boucle coûte de l'argent réel, sans plafond ni al
 **Correctif** : budget explicite (`--max-iterations`, `--max-tokens-session`), compteur de
 coût affiché, arrêt sur dépassement.
 
-### C13 — Permissions de fichiers trop larges 🟡
+### C13 — Permissions de fichiers trop larges 🟡 — ✅ corrigé (sprint 7)
 `main.go:795-796` : `MkdirAll(…, 0755)` et `WriteFile(…, 0644)`, sans tenir compte du
 `umask` ni de la sensibilité du fichier. Un `.env` créé par l'agent est lisible par le
 groupe et les autres utilisateurs. Le checkpoint git (`949-953`) commite par ailleurs tout
@@ -318,7 +318,7 @@ si l'agent gagne un mode parallèle.
 **Correctif** : `openat2(RESOLVE_BENEATH)` sous Linux, sinon ouvrir puis vérifier
 `fstat`/`/proc/self/fd` avant d'écrire.
 
-### C15 — Hygiène des secrets dans l'historique du dépôt 🟠
+### C15 — Hygiène des secrets dans l'historique du dépôt 🟠 — ✅ corrigé (sprint 7, `check-secrets.sh`)
 Une clé API a séjourné en clair dans `build_and_run.sh` (retirée au commit `0f9edce`, mais
 elle doit être **révoquée** : elle a existé sur disque, dans des sauvegardes `*.bak` et
 potentiellement des copies). Aucun `.env` n'est versionné aujourd'hui, c'est vérifié.
@@ -344,7 +344,7 @@ contenu, ni le diff, ni la taille. L'utilisateur doit faire confiance à un nom 
 **Correctif** : diff unifié coloré (3 lignes de contexte), compteur `+12 −3`, et `y` pour
 accepter / `n` refuser / `d` voir le diff complet.
 
-### U03 — L'agent est muet sur ce qu'il fait 🟠
+### U03 — L'agent est muet sur ce qu'il fait 🟠 — ✅ corrigé (sprint 7)
 Seul `⚙️ Appel : nom` est affiché (`476`) ; le résultat d'outil n'est **jamais** montré
 (sauf en cas d'erreur, `483`). On ne sait pas quel fichier a été lu, combien de lignes, ce
 qui a été écrit. C'est aussi un problème de sécurité (C09) : pas de trace, pas de contrôle.
@@ -425,7 +425,7 @@ sous forme de 400. Aucune liste, aucune validation, aucun retour arrière automa
 **Correctif** : valider via un `/v1/models` (si disponible) ou au premier appel, et revenir
 au modèle précédent en cas d'échec.
 
-### U15 — Coût et contexte invisibles 🟡
+### U15 — Coût et contexte invisibles 🟡 — ✅ corrigé (sprint 3 : `/status`)
 Aucun compteur de tokens, aucun coût estimé, aucune jauge de budget. La seule indication
 est le message de compaction (`1084-1085`), qui arrive **quand c'est déjà trop tard**.
 **Correctif** : ligne `contexte 12 340/52 000 tokens (~23 %)` dans `/status`, mise à jour après

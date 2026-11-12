@@ -15,6 +15,7 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -44,6 +45,7 @@ const (
 	maxAttempts          = 4
 	defaultMaxIterations = 30
 	maxAPIBody           = 32 << 20 // 32 Mo
+	maxURLLen            = 2048     // longueur max d'une URL de local_web_fetch
 )
 
 // apiBase est surchargeable (serveur de test « paranoïaque », proxy local, mock...).
@@ -181,11 +183,12 @@ type Agent struct {
 	omitted      int // messages omis depuis le début de la session
 
 	// Garde-fous d'exploitation
-	maxIterations    int // DEEPSEEK_MAX_ITERATIONS (0 = défaut)
-	maxSessionTokens int // DEEPSEEK_MAX_TOKENS (0 = pas de plafond)
-	spentTokens      int // total estimé envoyé depuis le démarrage
-	bashTimeout      int // DEEPSEEK_BASH_TIMEOUT en secondes
-	restored         int // messages rechargés au démarrage
+	maxIterations    int  // DEEPSEEK_MAX_ITERATIONS (0 = défaut)
+	maxSessionTokens int  // DEEPSEEK_MAX_TOKENS (0 = pas de plafond)
+	spentTokens      int  // total estimé envoyé depuis le démarrage
+	bashTimeout      int  // DEEPSEEK_BASH_TIMEOUT en secondes
+	restored         int  // messages rechargés au démarrage
+	verbose          bool // /verbose : affiche le contenu des sorties d'outils
 
 	// Protocole EMP Agent Smith (Ctrl+C)
 	cancelMu   sync.Mutex
@@ -621,6 +624,12 @@ func (a *Agent) runLoop(ctx context.Context) (string, error) {
 			} else {
 				consecutiveErrors = 0
 			}
+			// Résumé lisible (U03) : quoi, sur quel fichier, combien. Le contenu
+			// complet n'apparaît qu'avec /verbose (borné, assaini).
+			fmt.Printf("   %s\n", sanitizeTerm(resumeOutil(tc.Function.Name, argsDe(tc.Function.Arguments), result, err)))
+			if a.verbose {
+				fmt.Printf("   %s\n", sanitizeTerm(truncate(result, 4000)))
+			}
 			// Journal d'audit (C09) : outil, empreinte des arguments, décision, résultat.
 			statut := "ok"
 			if err != nil {
@@ -875,7 +884,7 @@ func (a *Agent) getTools() []Tool {
 	nativeTools := []Tool{
 		newTool("local_read_file", "Lit un fichier local.", map[string]any{"type": "object", "properties": map[string]any{"path": map[string]any{"type": "string"}}, "required": []string{"path"}}),
 		newTool("local_write_file", "Écrit un fichier local.", map[string]any{"type": "object", "properties": map[string]any{"path": map[string]any{"type": "string"}, "content": map[string]any{"type": "string"}}, "required": []string{"path", "content"}}),
-		newTool("local_edit_file", "Remplace un bloc local.", map[string]any{"type": "object", "properties": map[string]any{"path": map[string]any{"type": "string"}, "search_block": map[string]any{"type": "string"}, "replace_block": map[string]any{"type": "string"}}, "required": []string{"path", "search_block", "replace_block"}}),
+		newTool("local_edit_file", "Remplace un bloc local (search_block sans les numéros « N| »).", map[string]any{"type": "object", "properties": map[string]any{"path": map[string]any{"type": "string"}, "search_block": map[string]any{"type": "string"}, "replace_block": map[string]any{"type": "string"}}, "required": []string{"path", "search_block", "replace_block"}}),
 		newTool("local_bash", "Commande shell locale.", map[string]any{"type": "object", "properties": map[string]any{"command": map[string]any{"type": "string"}}, "required": []string{"command"}}),
 		newTool("local_web_search", "Recherche web DeepSeek.", map[string]any{"type": "object", "properties": map[string]any{"query": map[string]any{"type": "string"}}, "required": []string{"query"}}),
 		newTool("local_web_fetch", "Contenu URL DeepSeek.", map[string]any{"type": "object", "properties": map[string]any{"url": map[string]any{"type": "string"}}, "required": []string{"url"}}),
@@ -1054,7 +1063,7 @@ func (a *Agent) toolWriteFile(args map[string]any) (string, error) {
 	}
 	a.gitCheckpoint(full)
 	os.MkdirAll(filepath.Dir(full), 0755)
-	err = writeFileAtomic(full, []byte(c), 0644)
+	err = writeFileAtomic(full, []byte(c), modeActuel(full, 0o644))
 	return "Écriture réussie.", err
 }
 
@@ -1082,8 +1091,9 @@ func (a *Agent) toolEditFile(args map[string]any) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	s = normaliseBlocNumerote(s)
 	if !strings.Contains(string(data), s) {
-		return "Échec : search_block introuvable (indentation?).", nil
+		return "Échec : search_block introuvable (indentation?, numéros de ligne?).", nil
 	}
 	newC := strings.Replace(string(data), s, r, 1)
 	printDiff(p, string(data), newC)
@@ -1091,7 +1101,7 @@ func (a *Agent) toolEditFile(args map[string]any) (string, error) {
 		return "Annulé", nil
 	}
 	a.gitCheckpoint(full)
-	err = writeFileAtomic(full, []byte(newC), 0644)
+	err = writeFileAtomic(full, []byte(newC), modeActuel(full, 0o644))
 	return "Modification appliquée.", err
 }
 
@@ -1165,13 +1175,44 @@ func (a *Agent) toolWebSearch(ctx context.Context, args map[string]any) (string,
 }
 
 func (a *Agent) toolWebFetch(ctx context.Context, args map[string]any) (string, error) {
-	return a.postDeepSeekTool(ctx, "/v1/tools/fetch", args, func(raw []byte) (string, error) {
+	brute, err := getStringArg(args, "url")
+	if err != nil {
+		return "", err
+	}
+	// Le fetch est délégué au fournisseur, mais l'URL vient du modèle : on refuse
+	// les schémas exotiques, les identifiants embarqués et les URLs démesurées (C11).
+	propre, err := validerURLFetch(brute)
+	if err != nil {
+		return "", err
+	}
+	return a.postDeepSeekTool(ctx, "/v1/tools/fetch", map[string]any{"url": propre}, func(raw []byte) (string, error) {
 		var resp FetchResponse
 		if json.Unmarshal(raw, &resp) != nil || resp.Content == "" {
 			return truncate("RAW JSON:\n"+string(raw), maxToolOut), nil
 		}
 		return truncate(fmt.Sprintf("# %s\n\n%s", resp.Title, resp.Content), maxToolOut), nil
 	})
+}
+
+// validerURLFetch normalise et contrôle une URL destinée à local_web_fetch.
+func validerURLFetch(brute string) (string, error) {
+	u, err := url.Parse(strings.TrimSpace(brute))
+	if err != nil {
+		return "", fmt.Errorf("URL invalide : %w", err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return "", fmt.Errorf("schéma refusé : %q (attendu http ou https)", u.Scheme)
+	}
+	if u.Host == "" {
+		return "", fmt.Errorf("URL sans hôte : %q", brute)
+	}
+	if u.User != nil {
+		return "", fmt.Errorf("identifiants dans l'URL refusés")
+	}
+	if len(brute) > maxURLLen {
+		return "", fmt.Errorf("URL trop longue (%d octets, plafond %d)", len(brute), maxURLLen)
+	}
+	return u.String(), nil
 }
 
 // toolBodyLimit borne la lecture des réponses des outils web. Variable pour les tests.
@@ -1648,6 +1689,42 @@ func sessionPath(w string) string {
 	return filepath.Join(d, fmt.Sprintf("%x.json", h[:8]))
 }
 
+// ligneNumerotee reconnaît le préfixe ajouté par local_read_file (« 12| »).
+var ligneNumerotee = regexp.MustCompile(`^\s*\d+\|\s?`)
+
+// normaliseBlocNumerote retire les préfixes « N| » si le bloc est entièrement
+// numéroté : le modèle recopie souvent la colonne affichée par read_file (D14),
+// ce qui faisait échouer local_edit_file. Idempotent sur un bloc non numéroté.
+func normaliseBlocNumerote(s string) string {
+	lignes := strings.Split(s, "\n")
+	numerotees, nonVides := 0, 0
+	for _, l := range lignes {
+		if strings.TrimSpace(l) == "" {
+			continue
+		}
+		nonVides++
+		if ligneNumerotee.MatchString(l) {
+			numerotees++
+		}
+	}
+	if nonVides == 0 || numerotees != nonVides {
+		return s
+	}
+	for i, l := range lignes {
+		lignes[i] = ligneNumerotee.ReplaceAllString(l, "")
+	}
+	return strings.Join(lignes, "\n")
+}
+
+// modeActuel renvoie les permissions existantes d'un fichier, ou def pour un
+// nouveau fichier. Écrire en 0644 un secret déjà en 0600 est une régression (C13).
+func modeActuel(path string, def os.FileMode) os.FileMode {
+	if info, err := os.Stat(path); err == nil {
+		return info.Mode().Perm()
+	}
+	return def
+}
+
 // writeFileAtomic écrit dans un temporaire du même dossier puis renomme.
 // Deux garanties : jamais de fichier tronqué si le processus meurt, et le
 // rename remplace le lien symbolique au lieu de le suivre (pas d'écriture
@@ -1820,6 +1897,52 @@ func (a *Agent) resumeSpinner() {
 	}
 }
 
+// argsDe décode tolérément les arguments d'un tool call (déjà validés plus tôt).
+func argsDe(raw string) map[string]any {
+	var m map[string]any
+	if json.Unmarshal([]byte(raw), &m) != nil {
+		return nil
+	}
+	return m
+}
+
+// resumeOutil produit la ligne de synthèse affichée après chaque outil : sans
+// elle, l'opérateur ne sait pas ce qui a été lu, écrit ou exécuté (U03).
+func resumeOutil(nom string, args map[string]any, result string, err error) string {
+	if err != nil {
+		return fmt.Sprintf("%s → erreur", nom)
+	}
+	if result == "Annulé" {
+		return fmt.Sprintf("%s → annulé", nom)
+	}
+	champ := func(k string) string {
+		if v, ok := args[k].(string); ok {
+			return v
+		}
+		return "?"
+	}
+	lignes := strings.Count(result, "\n")
+	switch nom {
+	case "local_read_file":
+		return fmt.Sprintf("%s → %d ligne(s) lues", champ("path"), lignes)
+	case "local_write_file":
+		return fmt.Sprintf("%s → %d ligne(s) écrites", champ("path"), strings.Count(champ("content"), "\n")+1)
+	case "local_edit_file":
+		return fmt.Sprintf("%s → %d ligne(s) remplacées", champ("path"), strings.Count(champ("replace_block"), "\n")+1)
+	case "local_bash":
+		code := "?"
+		if rest, ok := strings.CutPrefix(result, "Code: "); ok {
+			if c, _, found := strings.Cut(rest, "\n"); found {
+				code = c
+			}
+		}
+		return fmt.Sprintf("bash → exit %s, %d ligne(s) de sortie", code, lignes)
+	case "local_web_search", "local_web_fetch":
+		return fmt.Sprintf("%s → %d octet(s)", nom, len(result))
+	}
+	return fmt.Sprintf("%s → %d octet(s)", nom, len(result))
+}
+
 // promptLabel rend l'invite lisible : modèle + modes actifs, pour ne jamais
 // oublier qu'on est en /godmode ou /auto (U09).
 func (a *Agent) promptLabel() string {
@@ -1876,6 +1999,7 @@ func (a *Agent) printStatus() {
 	fmt.Println("=== STATUS ===")
 	fmt.Printf("modèle      : %s (thinking %v, effort %q)\n", a.model, a.thinking, a.effort)
 	fmt.Printf("modes       : %s\n", strings.Join(modes, " "))
+	fmt.Printf("verbose     : %v\n", a.verbose)
 	fmt.Printf("outils      : %d natifs + %d MCP (%d serveurs)\n",
 		len(a.getTools())-mcpTools, mcpTools, len(a.mcpServers))
 	fmt.Printf("contexte    : ~%d / %d tokens (%d messages, %d omis)\n",
@@ -1907,6 +2031,9 @@ func (a *Agent) handleCommand(in string) {
 		}
 	case "/status":
 		a.printStatus()
+	case "/verbose":
+		a.verbose = !a.verbose
+		fmt.Println("verbose :", a.verbose)
 	case "/model":
 		if len(p) > 1 {
 			nouveau := p[1]
@@ -1978,6 +2105,7 @@ func (a *Agent) handleCommand(in string) {
 		fmt.Println("  /clear         : Efface la session actuelle")
 		fmt.Println("  /auto          : Auto-approbation pacifique (silencieux)")
 		fmt.Println("  /status        : Modèle, modes, outils, budget, session, audit")
+		fmt.Println("  /verbose       : Affiche le contenu des sorties d'outils")
 		fmt.Println("\n=== LES MODES DU CHAOS (Cumulables) ===")
 		fmt.Println("  /mandalorian🛡️ : Interdit au modèle de parler, il exécute la tâche en silence.")
 		fmt.Println("  /bladerunner🦄 : Pousse l'agent à auditer la sécurité et traquer les bugs.")

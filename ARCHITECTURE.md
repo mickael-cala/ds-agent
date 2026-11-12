@@ -52,6 +52,7 @@ Le fichier est volontairement monolithique mais découpé en 10 sections numéro
 | 9.1 | Frontières de confiance | `childEnv`, `collectSecrets`/`redact`, `isSensitivePath`, `protectedWriteReason`, `writeFileAtomic`, `secureMkdirAll` |
 | — | Traçabilité | `audit.go` (JSONL append-only), `printStatus` (`/status`), `promptLabel` (modes visibles) |
 | — | Confinement | `sandbox.go` (`commandWithSandbox`, `motDetecte`), `proc_*.go` (groupe de processus) |
+| — | Lisibilité / entrées | `resumeOutil` (synthèse par outil), `validerURLFetch`, `normaliseBlocNumerote`, `modeActuel` |
 | 10 | Commandes & spinner | `startSpinner`/`stopSpinner`/`pauseSpinner`, `handleCommand` (`/help`, modes du chaos) |
 | — | Affichage sûr | `sanitizeTerm` (C0/C1/`ESC`), `diffHunk`/`printDiff` (aperçu avant écriture) |
 

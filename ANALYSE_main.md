@@ -1,5 +1,9 @@
 # Analyse de `main.go` — Agent CLI DeepSeek (Go)
 
+> ⚠️ **Document historique.** Rédigé quand `main.go` faisait 929 lignes ; il en compte
+> aujourd'hui ~1 900 après les sprints 1 à 7. Les fonctions et les principes restent
+> exacts, les numéros de ligne non. Voir [ARCHITECTURE.md](ARCHITECTURE.md) pour l'état courant.
+
 > Analyse générée via les outils MCP externes (`read_file`, `read_file_lines`).
 > Fichier analysé : `main.go` (929 lignes) — complété par `go.mod` et `mcp.json`.
 

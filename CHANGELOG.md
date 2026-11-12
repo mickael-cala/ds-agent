@@ -105,6 +105,22 @@ Correctifs issus de [AUDIT.md](AUDIT.md), suivis dans [PLAN_ACTION.md](PLAN_ACTI
   fork bomb, `curl | sh` sont refusés avant confirmation (contournables par `/godmode`
   uniquement) (ERRATA-021).
 
+### Corrigé — sprint 7 (« hygiène avant release »)
+
+- **Permissions préservées** : un fichier en `0600` réécrit par l'agent reste en `0600`
+  (ERRATA-022, C13).
+- **`local_web_fetch` validé** : schémas `http`/`https`, hôte requis, refus des identifiants
+  embarqués, URL ≤ 2 048 octets, normalisation avant envoi (ERRATA-023, C11).
+- **Édition tolérante aux numéros de ligne** : un `search_block` copié depuis `read_file`
+  (`12| …`) est accepté (ERRATA-024, D14).
+- **L'agent dit ce qu'il fait** : une ligne de synthèse par outil (`main.go → 1 284 ligne(s)
+  lues`, `bash → exit 0, 12 ligne(s)`) et `/verbose` pour le contenu complet (U03).
+- **Garde-fou anti-secret** : `scripts/check-secrets.sh` (jetons `sk-`, `ghp_`,
+  `github_pat_`, `AKIA`, clés privées, fichiers interdits), appelé en CI et en local,
+  avec exemptions explicites pour les fixtures (C15).
+- Dettes documentaires soldées : `U15` marqué corrigé (déjà couvert par `/status`),
+  `ANALYSE_main.md` signalé comme document historique (D15).
+
 ### Tests
 
 - +6 tests (sprint 1) : `TestSanitizeTerm`, `TestDiffHunk`, `TestDiffHunkNouveauFichier`,
@@ -115,7 +131,9 @@ Correctifs issus de [AUDIT.md](AUDIT.md), suivis dans [PLAN_ACTION.md](PLAN_ACTI
   plafond d'itérations.
 - +5 tests (sprint 4) : drapeaux CLI, invite, validation de `/model`, budget avec outils.
 - +7 tests (sprint 5) : sandbox (arguments, absence de bwrap, exécution via faux bwrap),
-  commandes destructrices, refus effectif. Total : **43 tests**.
+  commandes destructrices, refus effectif.
+- +7 tests (sprint 7) : permissions, URL, blocs numérotés, résumés d'outils, anti-secret.
+  Total : **50 tests**.
 
 ## [0.1.0] — 2026-11-12
 

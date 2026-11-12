@@ -21,6 +21,7 @@ go test ./...                       # tests unitaires (racine, 6 tests)
 gofmt -l -w . && go vet ./...        # format + analyse
 ( cd audit_api && make )            # fmt + vet + test + build du sous-projet
 bash tests/paranoid.sh ; echo $?    # banc hostile — doit valoir 0
+./scripts/check-secrets.sh         # aucun jeton ni fichier interdit versionné
 ```
 
 Avant de lancer l'agent vous-même : `export DEEPSEEK_API_KEY=…` (jamais en dur, jamais commité).

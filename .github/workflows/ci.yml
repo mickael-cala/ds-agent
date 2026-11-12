@@ -35,6 +35,9 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+      - name: Aucun secret versionné
+        run: bash scripts/check-secrets.sh
+
       - name: Tests unitaires (race)
         run: go test -race -count=1 ./...
 

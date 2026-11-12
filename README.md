@@ -151,6 +151,7 @@ Commandes du REPL :
 | `/auto` | Auto-approbation (plus de `[y/N]`) |
 | `/clear` | Purge l'historique, les compteurs et le fichier de session |
 | `/status` | Modèle, modes, outils, budget, dépense, session, journal |
+| `/verbose` | Affiche le contenu complet des sorties d'outils |
 | `/exit`, `/quit` | Ferme les serveurs MCP et quitte |
 
 ### Les modes du chaos (cumulables)
@@ -217,6 +218,8 @@ toute collision avec les outils natifs. Les erreurs de démarrage / `Initialize`
 - **Sessions** : hors du dossier temporaire partagé, permissions `0600`, écriture atomique.
 - **Journal d'audit** : `~/.config/ds-agent/audit.jsonl` (outil, empreinte des arguments,
   décision, résultat, taille), `0600`, append-only, désactivable via `DEEPSEEK_AUDIT=off`.
+- **Sans secret dans le dépôt** : `scripts/check-secrets.sh` échoue si un jeton, une clé
+  privée ou un fichier interdit (`.env`, `mcp.json`, `*.bak`) est versionné.
 - **Plafonds** : `DEEPSEEK_MAX_ITERATIONS` et `DEEPSEEK_MAX_TOKENS` bornent les boucles
   auto-approuvées.
 - **Commandes destructrices** : `rm -rf /`, `mkfs`, `dd of=/dev/…`, fork bomb, `curl | sh`
@@ -250,8 +253,12 @@ bash tests/context.sh        # A/B compaction de contexte
 bash tests/crash.sh          # robustesse aux coupures
 ```
 
-La CI (`.github/workflows/ci.yml`) exécute `gofmt`, `go vet`, `go test -race`, le banc
-hostile, l'e2e, `govulncheck` et un build linux/macOS/Windows.
+```bash
+./scripts/check-secrets.sh   # garde-fou : aucun jeton ni fichier interdit versionné
+```
+
+La CI (`.github/workflows/ci.yml`) exécute `gofmt`, `go vet`, `scripts/check-secrets.sh`,
+`go test -race`, le banc hostile, l'e2e, `govulncheck` et un build linux/macOS/Windows.
 
 Le sous-projet [`audit_api/`](audit_api/README.md) est une micro-API Go 1.22
 (routage par méthode) utilisée comme cible de tests et de build.

@@ -9,11 +9,12 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 | Indicateur | État |
 |---|---|
 | Build | ✅ `go build .` sans warning |
-| Tests unitaires | ✅ 43/43 (`go test ./...`, après sprint 5) |
+| Tests unitaires | ✅ 50/50 (`go test ./...`, après sprint 7) |
 | Sous-projet `audit_api` | ✅ 4/4 (`cd audit_api && go test ./...`) |
 | Banc hostile | ✅ 16 scénarios, 0 échec critique (`tests/paranoid.sh`) |
 | `gofmt` | ✅ aucun fichier à reformater |
 | `go vet` | ✅ propre |
+| Secrets versionnés | ✅ `scripts/check-secrets.sh` (local + CI) : 0 trouvaille |
 | `go test -race` | ⛔ non supporté sur `android/arm64` — exécuté en CI Linux |
 | Test bout-en-bout | ✅ `tests/e2e.sh` (binaire réel + mock, 2 scénarios) |
 | CI | ✅ `.github/workflows/ci.yml` : qualité (`-race`), build 3 OS, `govulncheck` |

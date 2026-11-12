@@ -243,6 +243,37 @@ assume explicitement le contournement).
 
 **Verrou.** `TestMotDetecte`, `TestBashRefuseCommandeDestructrice`.
 
+### ERRATA-022 — Les écritures écrasaient les permissions 🟡
+
+**Symptôme.** Un fichier en `0600` réécrit par l'agent repassait en `0644` (lisible par le
+groupe et les autres) ; les dossiers créés étaient en `0755`.
+
+**Correction.** `modeActuel()` conserve les permissions du fichier existant ; les nouveaux
+fichiers restent en `0644`, les dossiers en `0755`.
+
+**Verrou.** `TestModeActuel`, `TestWriteConserveLeMode`.
+
+### ERRATA-023 — URL de `local_web_fetch` non validée 🟡
+
+**Symptôme.** Schémas `file:`/`ftp:`, identifiants embarqués (`user:pass@`) et URLs
+démesurées étaient transmis tels quels au fournisseur.
+
+**Correction.** `validerURLFetch()` : `http`/`https` uniquement, hôte obligatoire, refus des
+identifiants, plafond de 2 048 octets, normalisation avant envoi.
+
+**Verrou.** `TestValiderURLFetch`.
+
+### ERRATA-024 — `search_block` numéroté rejeté 🟡
+
+**Symptôme.** Le modèle recopiait la colonne `12| ` affichée par `local_read_file` ;
+`local_edit_file` répondait « search_block introuvable ».
+
+**Correction.** `normaliseBlocNumerote()` retire les préfixes quand le bloc est entièrement
+numéroté (comportement inchangé pour un bloc brut ou mixte), et la description de l'outil
+le précise.
+
+**Verrou.** `TestNormaliseBlocNumerote`, `TestEditAccepteBlocNumerote`.
+
 ---
 
 ## 2. Défauts ouverts

@@ -21,9 +21,10 @@ Règles du jeu :
 | 4 | Confort & pilotage | 5 | ✅ fait | `8e75ab9` |
 | 5 | Confiance vérifiable (hors plan initial) | 5 | ✅ fait | `2e69ceb` |
 | 6 | Renommage du module & publication | 5 | ✅ fait | `24917e5` |
+| 7 | Hygiène avant release | 5 | ✅ fait | sprint 7 |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
-**Bilan : 25/25 items livrés**, 43 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
+**Bilan : 30/30 items livrés**, 50 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
 CI multi-plateforme, documentation à jour.
 
 ---
@@ -94,6 +95,17 @@ Objectif : rendre les garde-fous **prouvables par une machine**, pas seulement p
 | 6.3 | Application au compte réel : `mickael-cala` | D01 | `head -1 go.mod` → `github.com/mickael-cala/ds-agent` | ✅ |
 | 6.4 | Réécriture des auteurs des commits | — | `git log --format='%an <%ae>'` | ✅ |
 | 6.5 | Push, CI **8/8 jobs verts** (run #2), badge actif | C10 | <https://github.com/mickael-cala/ds-agent/actions> | ✅ |
+
+## Sprint 7 — « hygiène avant release »
+
+| # | Item | Réf. | Test / preuve | Statut |
+|---|---|---|---|---|
+| 7.1 | Écriture : permissions du fichier existant préservées (`modeActuel`) | C13 | `TestModeActuel`, `TestWriteConserveLeMode` | ✅ |
+| 7.2 | `local_web_fetch` : schéma http/https, hôte requis, pas d'identifiants, ≤ 2 048 octets | C11 | `TestValiderURLFetch` | ✅ |
+| 7.3 | `local_edit_file` accepte un `search_block` numéroté (`12| `) | D14 | `TestNormaliseBlocNumerote`, `TestEditAccepteBlocNumerote` | ✅ |
+| 7.4 | Une ligne de résumé par outil + `/verbose` | U03 | `TestResumeOutil` | ✅ |
+| 7.5 | `scripts/check-secrets.sh` en CI et en local | C15 | `TestCheckSecrets` | ✅ |
+| 7.6 | Dettes documentaires : `U15` marqué corrigé (sprint 3), `ANALYSE_main.md` daté | U15, D15 | relecture | ✅ |
 
 ## Réserve (non planifié)
 
