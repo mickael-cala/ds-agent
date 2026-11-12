@@ -299,6 +299,7 @@ type options struct {
 	Model     string
 	Auto      bool
 	NoSpinner bool
+	Sandbox   bool
 }
 
 // parseOptions isole le parsing des drapeaux pour pouvoir le tester.
@@ -310,6 +311,7 @@ func parseOptions(args []string) (options, error) {
 	fs.StringVar(&o.Model, "model", "", "modèle DeepSeek (défaut : DEEPSEEK_MODEL ou deepseek-chat)")
 	fs.BoolVar(&o.Auto, "auto", false, "auto-approbation (aucune confirmation)")
 	fs.BoolVar(&o.NoSpinner, "no-spinner", false, "désactive l'animation")
+	fs.BoolVar(&o.Sandbox, "sandbox", false, "confine local_bash avec bubblewrap (bwrap)")
 	if err := fs.Parse(args); err != nil {
 		return o, err
 	}
@@ -328,6 +330,17 @@ func main() {
 	}
 	if opts.NoSpinner {
 		spinnerEnabled = false
+	}
+	sandboxMode = strings.TrimSpace(os.Getenv("DEEPSEEK_SANDBOX"))
+	if sandboxMode == "" {
+		sandboxMode = "none"
+	}
+	if opts.Sandbox {
+		sandboxMode = "bwrap"
+	}
+	if sandboxMode == "bwrap" && !isBwrapAvailable() {
+		fmt.Fprintln(os.Stderr, "erreur : --sandbox/ DEEPSEEK_SANDBOX=bwrap exige bubblewrap (bwrap absent)")
+		os.Exit(2)
 	}
 	if opts.Dir != "" {
 		if err := os.Chdir(opts.Dir); err != nil {
@@ -1088,6 +1101,9 @@ func (a *Agent) toolBash(ctx context.Context, args map[string]any) (string, erro
 		return "", err
 	}
 	fmt.Printf("\n[bash] %s\n", sanitizeTerm(c))
+	if motif := motDetecte(c); motif != "" && !a.godmode {
+		return "", fmt.Errorf("commande refusée (%s) : exécutez-la vous-même, ou /godmode si vous assumez", motif)
+	}
 	if !a.approve("Exécuter") {
 		return "Annulé", nil
 	}
@@ -1099,11 +1115,11 @@ func (a *Agent) toolBash(ctx context.Context, args map[string]any) (string, erro
 	tCtx, cancel := context.WithTimeout(ctx, time.Duration(limit)*time.Second)
 	defer cancel()
 
-	sh, fl := "sh", "-c"
-	if runtime.GOOS == "windows" {
-		sh, fl = "cmd", "/c"
+	sh, shArgs, err := commandWithSandbox(sandboxMode, a.workDir, c, exec.LookPath)
+	if err != nil {
+		return "", err
 	}
-	cmd := exec.CommandContext(tCtx, sh, fl, c)
+	cmd := exec.CommandContext(tCtx, sh, shArgs...)
 	cmd.Dir = a.workDir
 	cmd.Env = childEnv()                      // la clé API ne doit pas être visible de la commande
 	out := newCappedBuffer(maxToolOut + 2048) // CORRIGÉ : capture bornée

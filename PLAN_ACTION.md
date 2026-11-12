@@ -21,7 +21,8 @@ Règles du jeu :
 | 4 | Confort & pilotage | 5 | ✅ fait | `082b8eb` |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
-**Bilan : 20/20 correctifs livrés**, 36 tests, 16 scénarios hostiles, documentation à jour.
+**Bilan : 25/25 items livrés**, 43 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
+CI multi-plateforme, documentation à jour.
 
 ---
 
@@ -69,6 +70,18 @@ Objectif : un process enfant, un fichier sensible ou un fichier de config ne doi
 | 4.3 | Budget : schéma des outils compté + tri déterministe des serveurs MCP | D07, D08 | `TestTokenBudgetAvecOutils` | ✅ |
 | 4.4 | Scripts de test portables + `clean.sh` + `clean.cmd` corrigé | D10, D11 | exécution des scripts | ✅ |
 | 4.5 | Indicateur de modes dans l'invite + validation de `/model` | U09, U14 | manuel | ✅ |
+
+## Sprint 5 — « confiance vérifiable » (ajouté après le sprint 4)
+
+Objectif : rendre les garde-fous **prouvables par une machine**, pas seulement par la lecture.
+
+| # | Item | Réf. | Test / preuve | Statut |
+|---|---|---|---|---|
+| 5.1 | CI GitHub Actions : gofmt, vet, tests `-race`, sous-projet, banc hostile, e2e | D12 | `.github/workflows/ci.yml` | ✅ |
+| 5.2 | Test bout-en-bout du REPL (binaire réel + mock + scénario `[[toolcall]]`) | D3 | `tests/e2e.sh` | ✅ |
+| 5.3 | `--sandbox` (bubblewrap) : racine en lecture seule, `workDir` et `/tmp` seuls inscriptibles | C08 | `TestSandboxArgs`, `TestSandboxExecution` | ✅ |
+| 5.4 | Garde-fou commandes destructrices (`rm -rf /`, `mkfs`, `dd of=/dev/…`, fork bomb…) | C08 | `TestMotDetecte`, `TestBashRefuseCommandeDestructrice` | ✅ |
+| 5.5 | `govulncheck` en CI + build multi-OS | C10 | job `vulnerabilites` | ✅ |
 
 ## Réserve (non planifié)
 

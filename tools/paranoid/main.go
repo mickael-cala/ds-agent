@@ -201,6 +201,14 @@ func handle(w http.ResponseWriter, r *http.Request) {
 	case "apierror":
 		raw(w, 200, "application/json", `{"error":{"message":"Rate limit reached for requests","type":"rate_limit"}}`)
 
+	case "toolcall":
+		// Boucle complète : un appel d'outil, puis une réponse finale.
+		if !sawTool(in.Messages) {
+			toolCall(w, "local_read_file", `{"path":"go.mod"}`)
+			return
+		}
+		answer(w, "OK-toolcall : outil lu puis réponse finale")
+
 	case "badtool":
 		if !sawTool(in.Messages) {
 			toolCall(w, "local_bash", `{"command": "echo salut"`)

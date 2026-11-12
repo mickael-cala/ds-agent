@@ -32,7 +32,7 @@ Légende : ✅ fait · 🚧 en cours · ⬜ prévu · 💡 idée (non engagée)
 - ⬜ Support `env` et `cwd` par serveur dans `mcp.json` (`MCPConfig` = `Command` + `Args` seulement)
 - 🚧 Streaming SSE : documenté comme non supporté (rejet explicite) — implémenter ou assumer
 - ⬜ Timeouts configurables par variable d'environnement (bash 120 s, MCP 60 s, HTTP 300 s en dur)
-- ⬜ CI GitHub Actions : `gofmt -l`, `go vet`, `go test ./...`, build linux/amd64 + arm64 + windows
+- ✅ CI GitHub Actions : `gofmt`, `go vet`, `go test -race`, e2e, build 3 OS, `govulncheck`
 - ⬜ `goreleaser` : binaires signés, `SHA256SUMS`, notes de version
 
 ## v0.3 — Sécurité 🚧
@@ -41,7 +41,8 @@ Légende : ✅ fait · 🚧 en cours · ⬜ prévu · 💡 idée (non engagée)
   domaines) — le fetch est délégué à l'API, le SSRF local n'est donc pas le risque principal
 - ⬜ Journal d'audit local (JSONL) : outil, arguments, décision d'approbation, horodatage
 - ⬜ Politique d'approbation par outil (ex. `local_bash` toujours confirmé, même en `/auto`)
-- ⬜ Sandbox optionnelle : `bwrap`/`nsjail` sous Linux, `sandbox-exec` sous macOS
+- ✅ Sandbox optionnelle : `--sandbox` (bubblewrap) sous Linux/Termux
+- ⬜ Équivalents macOS (`sandbox-exec`) et Windows (AppContainer)
 - ⬜ Refus par défaut de `local_bash` sur motifs destructeurs (`rm -rf /`, `mkfs`, fork bomb)
 - ⬜ Rotation / expiration des clés API, refus de clé transmise en argument CLI
 - ⬜ Signature des checkpoints git (identité dédiée, message traçable)

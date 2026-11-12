@@ -157,7 +157,7 @@ fait déjà bien : `cd "$(dirname "$0")/.."`.
 purgé son historique ; il n'a rien purgé. **Correctif** : une seule constante, documentée
 dans le README, et suppression côté Unix (`clean.sh` manquant).
 
-### D12 — Aucun test sur les parties fragiles 🟡
+### D12 — Aucun test sur les parties fragiles 🟡 — ✅ corrigé (sprint 5)
 `go test ./...` couvre la compaction et `truncate` (excellent), mais rien sur : `safePath`,
 `approve`, le spinner, `executeTool`, le décodage des arguments. Pas de `-race` en CI.
 **Correctif** : `go test -race`, tests de `safePath` (cas `..`, symlink sortant, symlink
@@ -264,7 +264,7 @@ valide, il ne lit pas le JSON) → RCE au prochain lancement.
 une denylist dans `safePath`, ou confirmation renforcée affichant le diff ; vérifier
 l'intégrité de `mcp.json` (hash mémorisé) au démarrage.
 
-### C08 — Le « bac à sable » n'existe pas côté shell 🟡
+### C08 — Le « bac à sable » n'existe pas côté shell 🟡 — ✅ corrigé (sprint 5, `--sandbox`)
 Le prompt (`202`) et plusieurs docs parlent de bac à sable. Réalité : `local_bash` exécute
 un shell complet, sans `chroot`, sans `seccomp`, sans limite de ressources. `safePath` ne
 s'applique qu'aux outils de fichiers. Un modèle mal orienté peut donc lire `~/.ssh`,
@@ -279,7 +279,7 @@ preuve**, seulement l'historique de session — que la compaction tronque et que
 **Correctif** : JSONL append-only (`~/.local/state/ds-agent/audit.jsonl`) :
 `{ts, session, tool, args_hash, decision, exit, bytes}`, avec rotation.
 
-### C10 — Chaîne de dépendances non surveillée 🟡
+### C10 — Chaîne de dépendances non surveillée 🟡 — ✅ partiellement (sprint 5 : `govulncheck`)
 `mcp-go v1.5.0` figé, `go.sum` présent (bien), mais pas de `govulncheck`, pas de Dependabot,
 pas de provenance de build (`-trimpath`, `-buildvcs`), pas de signature de release.
 **Correctif** : `govulncheck ./...` en CI, Dependabot, `goreleaser` + `cosign` quand les

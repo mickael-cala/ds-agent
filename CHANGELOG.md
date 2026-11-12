@@ -81,6 +81,20 @@ Correctifs issus de [AUDIT.md](AUDIT.md), suivis dans [PLAN_ACTION.md](PLAN_ACTI
 - **Scripts portables** : `tests/context.sh` et `tests/crash.sh` repartent du dépôt,
   `clean.sh` ajouté, `clean.cmd` pointe sur `%APPDATA%\ds-agent` (ERRATA-019, D10/D11).
 
+### Ajouté — sprint 5 (« confiance vérifiable »)
+
+- **CI GitHub Actions** : `gofmt` + `go vet`, tests `-race` (racine et `audit_api`),
+  banc hostile, test bout-en-bout, build linux/macOS/Windows, `govulncheck`, binaire
+  versionné par `-ldflags` (D12, C10).
+- **Test bout-en-bout du REPL** (`tests/e2e.sh`) : vrai binaire, vrai mock HTTP, scénario
+  `[[toolcall]]` ajouté au serveur paranoïaque — la boucle outil → réponse est couverte (D3).
+- **`--sandbox`** (`DEEPSEEK_SANDBOX=bwrap`) : `local_bash` exécuté dans bubblewrap, racine
+  en lecture seule, `workDir` et `/tmp` inscriptibles, PID/UTS isolés ; refus de démarrer
+  si `bwrap` est absent plutôt qu'un faux sentiment de sécurité (C08, ERRATA-020).
+- **Garde-fou commandes destructrices** : `rm -rf /`, `mkfs`, `dd of=/dev/…`, `> /dev/sdX`,
+  fork bomb, `curl | sh` sont refusés avant confirmation (contournables par `/godmode`
+  uniquement) (ERRATA-021).
+
 ### Tests
 
 - +6 tests (sprint 1) : `TestSanitizeTerm`, `TestDiffHunk`, `TestDiffHunkNouveauFichier`,
@@ -90,7 +104,8 @@ Correctifs issus de [AUDIT.md](AUDIT.md), suivis dans [PLAN_ACTION.md](PLAN_ACTI
 - +6 tests (sprint 3) : audit JSONL, timeout/groupe de processus, `/clear`, `/status`,
   plafond d'itérations.
 - +5 tests (sprint 4) : drapeaux CLI, invite, validation de `/model`, budget avec outils.
-  Total : **36 tests**.
+- +7 tests (sprint 5) : sandbox (arguments, absence de bwrap, exécution via faux bwrap),
+  commandes destructrices, refus effectif. Total : **43 tests**.
 
 ## [0.1.0] — 2026-11-12
 

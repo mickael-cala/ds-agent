@@ -24,6 +24,16 @@ avec les droits de l'utilisateur qui le lance. Il n'est pas conçu comme une fro
 ou sous un utilisateur système à privilèges réduits, et ne l'exposez jamais directement à
 des entrées d'un tiers non authentifié.
 
+### Mode sandbox (optionnel)
+
+`./ds-agent --sandbox` (ou `DEEPSEEK_SANDBOX=bwrap`) exécute chaque `local_bash` dans
+**bubblewrap** : système de fichiers racine en lecture seule, `workDir` et `/tmp`
+inscriptibles, PID/UTS isolés, `HOME` ramené au répertoire de travail. Sans `bwrap`
+installé, l'agent refuse de démarrer dans ce mode (pas de faux confinement).
+
+Limites assumées : le réseau reste disponible, le répertoire de travail est inscriptible
+(c'est le but), et Windows n'est pas couvert. Voir ERRATA-020.
+
 ## Garde-fous implémentés
 
 | Garde-fou | Détail |

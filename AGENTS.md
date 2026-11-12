@@ -15,7 +15,7 @@ Docs de référence : [ARCHITECTURE.md](ARCHITECTURE.md), [ERRATA.md](ERRATA.md)
 ## Commandes
 
 ```bash
-go build -o ds-agent .              # build
+bash tests/e2e.sh                   # bout-en-bout (binaire + mock, hors ligne)
 go build -ldflags "-X main.version=x.y.z" -o ds-agent .   # build versionné
 go test ./...                       # tests unitaires (racine, 6 tests)
 gofmt -l -w . && go vet ./...        # format + analyse
@@ -52,7 +52,9 @@ Pour tester sans réseau : `DEEPSEEK_API_BASE=http://127.0.0.1:PORT` + `tools/pa
    clés sont refusés à l'écriture (`protectedWriteReason`) ; leur lecture exige `approve`.
 11. **Traçabilité** : toute action d'outil passe par `a.audit(...)` (jamais d'arguments en
    clair, seulement leur empreinte). Ne pas contourner le journal dans un nouvel outil.
-12. **Licence** : tout nouveau fichier source commence par
+12. **Confinement** : toute exécution shell passe par `commandWithSandbox()` et par
+   `motDetecte()` avant confirmation. Ne jamais contourner ces deux appels.
+13. **Licence** : tout nouveau fichier source commence par
    `// SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Commercial`.
    Ne pas modifier `LICENSE` (texte AGPL canonique) ni retirer cette double licence.
 
@@ -89,7 +91,7 @@ Une contribution est terminée quand :
 
 - [ ] `gofmt -l .` ne renvoie rien, `go vet ./...` est propre
 - [ ] `go test ./...` passe (et `cd audit_api && go test ./...`)
-- [ ] `bash tests/paranoid.sh` renvoie `0`
+- [ ] `bash tests/paranoid.sh` renvoie `0` et `bash tests/e2e.sh` passe
 - [ ] un test ou un scénario couvre le comportement ajouté
 - [ ] les docs impactées sont à jour : `README.md`, `STATUS.md`, `ERRATA.md` (nouveau
       défaut ⇒ nouvelle entrée), `ROADMAP.md` (case cochée)

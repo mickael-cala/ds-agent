@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualite:
+    name: Qualité (linux, -race)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Format (gofmt)
+        run: |
+          test -z "$(gofmt -l .)" || { echo "fichiers à formater :"; gofmt -l .; exit 1; }
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Tests unitaires (race)
+        run: go test -race -count=1 ./...
+
+      - name: Tests du sous-projet audit_api
+        run: cd audit_api && go test -race -count=1 ./...
+
+      - name: Banc hostile (mock deepseek)
+        run: bash tests/paranoid.sh
+
+      - name: Test bout-en-bout du REPL
+        run: bash tests/e2e.sh
+
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Compilation
+        run: go build ./...
+
+      - name: Binaire versionné (linux)
+        if: runner.os == 'Linux'
+        run: go build -ldflags "-s -w -X main.version=${GITHUB_REF_NAME}" -o ds-agent .
+
+      - name: Vérification du binaire (linux)
+        if: runner.os == 'Linux'
+        run: ./ds-agent --version
+
+  vulnerabilites:
+    name: Vulnérabilités (govulncheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...

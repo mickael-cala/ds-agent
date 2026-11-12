@@ -9,12 +9,15 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 | Indicateur | État |
 |---|---|
 | Build | ✅ `go build .` sans warning |
-| Tests unitaires | ✅ 36/36 (`go test ./...`, après sprint 4) |
+| Tests unitaires | ✅ 43/43 (`go test ./...`, après sprint 5) |
 | Sous-projet `audit_api` | ✅ 4/4 (`cd audit_api && go test ./...`) |
 | Banc hostile | ✅ 16 scénarios, 0 échec critique (`tests/paranoid.sh`) |
 | `gofmt` | ✅ aucun fichier à reformater |
 | `go vet` | ✅ propre |
-| `go test -race` | ⛔ non supporté sur `android/arm64` (à lancer en CI Linux) |
+| `go test -race` | ⛔ non supporté sur `android/arm64` — exécuté en CI Linux |
+| Test bout-en-bout | ✅ `tests/e2e.sh` (binaire réel + mock, 2 scénarios) |
+| CI | ✅ `.github/workflows/ci.yml` : qualité (`-race`), build 3 OS, `govulncheck` |
+| Sandbox | ⚠️ `--sandbox` (bubblewrap) implémenté, non testé sur Termux (bwrap absent) |
 | Secrets dans le dépôt | ✅ aucun (`.env`, `mcp.json` ignorés) |
 | Binaire | 8,4 Mio, `-ldflags="-s -w"`, aucune dépendance CGO |
 | Licence | ✅ double AGPL-3.0 / commercial (voir [LICENSING.md](LICENSING.md)) |
@@ -34,7 +37,10 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
   décision, résultat, taille — désactivable par `DEEPSEEK_AUDIT=off`.
 - Timeout bash : groupe de processus tué (plus de petits-enfants orphelins).
 - Plafonds : itérations par tâche et tokens par session.
-- CLI : `--version`, `--dir`, `--model`, `--auto`, `--no-spinner` ; invite affichant les modes.
+- CLI : `--version`, `--dir`, `--model`, `--auto`, `--no-spinner`, `--sandbox` ; invite
+  affichant les modes.
+- Garde-fou commandes destructrices et confinement bubblewrap optionnel.
+- CI : gofmt/vet/tests `-race`, sous-projet, banc hostile, e2e, build 3 OS, govulncheck.
 - Animation désactivée automatiquement hors TTY (pipes, CI).
 - Compilation Windows (`build_and_run.cmd` fourni, `cmd /c` pour `local_bash`).
 - Robustesse réseau : 429, 502, 500 itératif, corps HTML, JSON tronqué, UTF-8 invalide,
@@ -46,9 +52,8 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 |---|---|---|---|
 | D1 | `main.go` monolithique (1 284 lignes, 7 sections numérotées) | lisibilité, tests difficiles | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | D2 | Estimation de tokens `len/4` (pas de tokenizer) | compaction approximative | ERRATA-104 |
-| D3 | Aucun test d'intégration bout-en-bout (seulement unitaire + mock) | régressions possibles sur le REPL | ROADMAP v0.2 |
 | D4 | Sessions en clair dans `~/.config` (chemin corrigé, contenu non chiffré) | fuite de code/historique sur poste partagé | ERRATA-103 |
-| D5 | `audit_api/` est un module Go séparé | non couvert par `go test ./...` racine | ROADMAP v0.2 |
+| D5 | `audit_api/` est un module Go séparé | couvert par un job CI dédié | `.github/workflows/ci.yml` |
 | D6 | Un seul `SIGINT` géré, pas de `SIGTERM` | arrêt sale via `kill`/systemd | ERRATA-102 |
 | D9 | Journal d'audit non borné en taille | croissance lente de `audit.jsonl` | C09, ROADMAP v0.3 |
 | D8 | `go.mod` déclare `go 1.27.1` | toolchains antérieures refusées | ERRATA-109 |

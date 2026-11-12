@@ -222,6 +222,27 @@ l'agent n'utilise pas.
 
 **Verrou.** `bash -n tests/*.sh clean.sh` + exécution du banc.
 
+### ERRATA-020 — Aucun confinement réel de `local_bash` 🟠
+
+**Symptôme.** Le prompt parlait de « bac à sable » alors que le shell voyait tout le système
+de fichiers (`/etc`, `~/.ssh`, `~/.aws`) dès qu'une commande était approuvée.
+
+**Correction.** Option `--sandbox` / `DEEPSEEK_SANDBOX=bwrap` : exécution dans bubblewrap
+(racine en lecture seule, `workDir` et `/tmp` inscriptibles, PID/UTS isolés, `HOME` = `workDir`).
+Si `bwrap` manque, l'agent **refuse de démarrer** en mode sandbox au lieu de faire semblant.
+
+**Verrou.** `TestSandboxArgs`, `TestSandboxExecution`, `TestSandboxIndisponible`.
+
+### ERRATA-021 — Commandes irréversibles acceptées sans garde-fou 🟠
+
+**Symptôme.** `rm -rf /`, `mkfs`, `dd of=/dev/sda`, fork bomb : une seule réponse `y`
+suffisait, et `/auto` les validait sans question.
+
+**Correction.** `motDetecte()` bloque ces motifs avant confirmation (sauf `/godmode`, qui
+assume explicitement le contournement).
+
+**Verrou.** `TestMotDetecte`, `TestBashRefuseCommandeDestructrice`.
+
 ---
 
 ## 2. Défauts ouverts

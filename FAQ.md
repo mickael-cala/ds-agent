@@ -117,6 +117,15 @@ connues sont aussi caviardées (`[REDACTED]`) dans les sorties d'outils.
 avec l'empreinte des arguments, la décision et le résultat. `DEEPSEEK_AUDIT=off` le désactive ;
 le fichier peut être supprimé à chaud.
 
+**Comment isoler l'agent du système ?**
+`./ds-agent --sandbox` exécute `local_bash` sous bubblewrap : racine en lecture seule,
+seuls le répertoire de travail et `/tmp` sont inscriptibles. Il faut `bwrap` installé
+(Termux : `pkg install bubblewrap`) ; sinon l'agent refuse de démarrer dans ce mode.
+
+**Que se passe-t-il si le modèle tente `rm -rf /` ?**
+La commande est refusée avant même la question `[y/N]` (`motDetecte`) : `rm -rf /`, `mkfs`,
+`dd of=/dev/…`, fork bomb, `curl … | sh`. Seul `/godmode` passe outre, explicitement.
+
 **Comment borner les coûts ?**
 `DEEPSEEK_MAX_ITERATIONS` (défaut 30) limite les boucles, `DEEPSEEK_MAX_TOKENS` plafonne la
 dépense estimée par session, `DEEPSEEK_BASH_TIMEOUT` borne les commandes. `/status` affiche

@@ -2,7 +2,8 @@
 
 [![Go](https://img.shields.io/badge/Go-%E2%89%A5%201.22-00ADD8)](https://go.dev)
 [![Licence](https://img.shields.io/badge/licence-AGPL--3.0%20%7C%20commercial-blue)](LICENSING.md)
-[![Statut](https://img.shields.io/badge/statut-v0.1%20exp%C3%A9rimental-orange)](STATUS.md)
+[![Statut](https://img.shields.io/badge/statut-v0.2--dev-orange)](STATUS.md)
+[![CI](https://github.com/OWNER/ds-agent/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 
 Agent de codage en terminal, écrit en Go, propulsé par l'API **DeepSeek**.
 Il boucle sur des *tool calls* : lire, écrire, patcher, exécuter du shell, chercher
@@ -137,6 +138,7 @@ ne déplace que la racine du serveur MCP.
 | `--model <nom>` | modèle initial (`deepseek-…` ou `fournisseur/modèle`) |
 | `--auto` | auto-approbation (aucune confirmation) |
 | `--no-spinner` | désactive l'animation (automatique hors TTY) |
+| `--sandbox` | confine `local_bash` avec bubblewrap (racine en lecture seule) |
 
 Commandes du REPL :
 
@@ -216,6 +218,10 @@ toute collision avec les outils natifs. Les erreurs de démarrage / `Initialize`
   décision, résultat, taille), `0600`, append-only, désactivable via `DEEPSEEK_AUDIT=off`.
 - **Plafonds** : `DEEPSEEK_MAX_ITERATIONS` et `DEEPSEEK_MAX_TOKENS` bornent les boucles
   auto-approuvées.
+- **Commandes destructrices** : `rm -rf /`, `mkfs`, `dd of=/dev/…`, fork bomb, `curl | sh`
+  sont refusés avant confirmation (contournables uniquement par `/godmode`).
+- **Sandbox optionnelle** : `--sandbox` exécute `local_bash` sous bubblewrap — racine en
+  lecture seule, `workDir` et `/tmp` seuls inscriptibles, PID isolés.
 - **Anti-évasion** : `safePath` refuse `..` et les liens symboliques sortant du bac à sable.
 - **Checkpoints git** : commit automatique du fichier avant modification, rollback manuel facile.
 - **Rollback d'historique** : en cas d'erreur ou d'annulation, le dernier message utilisateur est retiré.
@@ -238,9 +244,13 @@ OpenAI/DeepSeek qui sabote volontairement les réponses (429, HTML, JSON tronqu�
 
 ```bash
 bash tests/paranoid.sh       # code de sortie = nombre de crashs/blocages
+bash tests/e2e.sh            # bout-en-bout : binaire réel + mock, boucle d'outils
 bash tests/context.sh        # A/B compaction de contexte
 bash tests/crash.sh          # robustesse aux coupures
 ```
+
+La CI (`.github/workflows/ci.yml`) exécute `gofmt`, `go vet`, `go test -race`, le banc
+hostile, l'e2e, `govulncheck` et un build linux/macOS/Windows.
 
 Le sous-projet [`audit_api/`](audit_api/README.md) est une micro-API Go 1.22
 (routage par méthode) utilisée comme cible de tests et de build.
@@ -250,6 +260,8 @@ Le sous-projet [`audit_api/`](audit_api/README.md) est une micro-API Go 1.22
 ```
 .
 ├── main.go                 # agent complet (config, MCP, boucle LLM, outils, REPL)
+├── sandbox.go              # confinement bwrap + garde-fou commandes destructrices
+├── .github/workflows/ci.yml # CI : qualité, build 3 OS, govulncheck
 ├── audit.go                # journal d'audit JSONL
 ├── proc_unix.go / proc_windows.go  # groupe de processus (timeout bash)
 ├── compact_test.go         # tests budget de tokens / compaction

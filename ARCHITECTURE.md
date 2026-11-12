@@ -51,6 +51,7 @@ Le fichier est volontairement monolithique mais découpé en 10 sections numéro
 | 9 | Sécurité & sessions | `safePath`, `gitCheckpoint`, `approve`/`Prompter`, budget (`estTokens`, `tokenBudget`), `compactHistory`, `load/saveSession` |
 | 9.1 | Frontières de confiance | `childEnv`, `collectSecrets`/`redact`, `isSensitivePath`, `protectedWriteReason`, `writeFileAtomic`, `secureMkdirAll` |
 | — | Traçabilité | `audit.go` (JSONL append-only), `printStatus` (`/status`), `promptLabel` (modes visibles) |
+| — | Confinement | `sandbox.go` (`commandWithSandbox`, `motDetecte`), `proc_*.go` (groupe de processus) |
 | 10 | Commandes & spinner | `startSpinner`/`stopSpinner`/`pauseSpinner`, `handleCommand` (`/help`, modes du chaos) |
 | — | Affichage sûr | `sanitizeTerm` (C0/C1/`ESC`), `diffHunk`/`printDiff` (aperçu avant écriture) |
 
@@ -91,7 +92,10 @@ Le fichier est volontairement monolithique mais découpé en 10 sections numéro
   sert de cible de build/test indépendante.
 - **`proc_unix.go` / `proc_windows.go`** : isolation de la commande bash dans un groupe de
   processus, pour que le timeout emporte les petits-enfants.
-- **`tests/*.sh`** : orchestration des bancs (hostile, compaction A/B, coupures).
+- **`tests/*.sh`** : orchestration des bancs (hostile, compaction A/B, coupures) et
+  `tests/e2e.sh` (bout-en-bout : binaire réel, mock HTTP, boucle d'outils).
+- **`.github/workflows/ci.yml`** : `gofmt`/`vet`/`go test -race`, sous-projet, banc hostile,
+  e2e, build linux/macOS/Windows, `govulncheck`.
 
 ## Points d'extension
 
