@@ -21,7 +21,7 @@ Règles du jeu :
 | 4 | Confort & pilotage | 5 | ✅ fait | `8e75ab9` |
 | 5 | Confiance vérifiable (hors plan initial) | 5 | ✅ fait | `2e69ceb` |
 | 6 | Renommage du module & publication | 5 | ✅ fait | `24917e5` |
-| 7 | Hygiène avant release | 5 | ✅ fait | sprint 7 |
+| 7 | Hygiène avant release | 5 | ✅ fait | `08d29bc` |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
 **Bilan : 30/30 items livrés**, 50 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
