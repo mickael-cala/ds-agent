@@ -22,7 +22,7 @@ Règles du jeu :
 | 5 | Confiance vérifiable (hors plan initial) | 5 | ✅ fait | `2e69ceb` |
 | 6 | Renommage du module & publication | 5 | ✅ fait | `24917e5` |
 | 7 | Hygiène avant release | 5 | ✅ fait | `08d29bc` |
-| 8 | Finaliser v0.2 | 5 | ✅ fait | sprint 8 |
+| 8 | Finaliser v0.2 | 5 | ✅ fait | `2c405b2` |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
 **Bilan : 35/35 items livrés**, 57 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
