@@ -8,10 +8,10 @@ publié sous forme de release binaire : les versions ci-dessous décrivent l'ét
 
 ### À venir
 
-Voir [ROADMAP.md](ROADMAP.md) — v0.2 : `SIGTERM`, flags CLI, verrou de session,
-`env`/`cwd` par serveur MCP, CI multi-plateforme.
+Voir [ROADMAP.md](ROADMAP.md) — v0.3 : sandbox macOS/Windows, chiffrement des sessions,
+allowlist d'approbation par outil, tokenizer réel.
 
-## [0.2.0-dev] — en cours
+## [0.2.0] — 2026-11-12
 
 Correctifs issus de [AUDIT.md](AUDIT.md), suivis dans [PLAN_ACTION.md](PLAN_ACTION.md).
 
@@ -104,6 +104,19 @@ Correctifs issus de [AUDIT.md](AUDIT.md), suivis dans [PLAN_ACTION.md](PLAN_ACTI
 - **Garde-fou commandes destructrices** : `rm -rf /`, `mkfs`, `dd of=/dev/…`, `> /dev/sdX`,
   fork bomb, `curl | sh` sont refusés avant confirmation (contournables par `/godmode`
   uniquement) (ERRATA-021).
+
+### Ajouté — sprint 8 (« finaliser v0.2 »)
+
+- **`SIGTERM`** : sauvegarde propre de l'historique (sans `tool_call` en attente) puis
+  fermeture des serveurs MCP, au lieu d'un arrêt sale (ERRATA-102).
+- **`--help`** : aide complète (drapeaux, variables d'environnement, commandes) ; un drapeau
+  inconnu affiche l'aide et sort en code 2 (ERRATA-106).
+- **`mcp.json` : `env` et `cwd` par serveur** — `cwd` via wrapper `sh -c` avec arguments
+  positionnels, donc sans injection (ERRATA-105).
+- **Délais configurables** : `DEEPSEEK_HTTP_TIMEOUT` et `DEEPSEEK_MCP_TIMEOUT` s'ajoutent à
+  `DEEPSEEK_BASH_TIMEOUT`.
+- **Verrou de session** : une seule instance par répertoire, `flock` libéré à la mort du
+  processus (ERRATA-107).
 
 ### Corrigé — sprint 7 (« hygiène avant release »)
 

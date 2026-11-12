@@ -23,17 +23,17 @@ Légende : ✅ fait · 🚧 en cours · ⬜ prévu · 💡 idée (non engagée)
 - ✅ Banc d'essai `tools/paranoid` + `tests/*.sh` (14 scénarios hostiles, 0 crash)
 - ✅ Modes de personnalité cumulables
 
-## v0.2 — Robustesse & exploitation 🚧
+## v0.2 — Robustesse & exploitation ✅ (v0.2.0)
 
-- ⬜ Gestion de `SIGTERM` (aujourd'hui seul `SIGINT` est intercepté)
-- ⬜ `--help`, `--version`, `--dir`, `--model`, `--auto` : le binaire n'accepte aucun argument
-- ⬜ Verrou de session (deux instances dans le même répertoire partagent le même fichier)
-- ⬜ Chiffrement ou purge des sessions (aujourd'hui JSON en clair, `0600`, dans `$TMPDIR`)
-- ⬜ Support `env` et `cwd` par serveur dans `mcp.json` (`MCPConfig` = `Command` + `Args` seulement)
-- 🚧 Streaming SSE : documenté comme non supporté (rejet explicite) — implémenter ou assumer
-- ⬜ Timeouts configurables par variable d'environnement (bash 120 s, MCP 60 s, HTTP 300 s en dur)
+- ✅ Gestion de `SIGTERM` : sauvegarde propre (sans tool call en attente) puis fermeture des serveurs MCP
+- ✅ `--help`, `--version`, `--dir`, `--model`, `--auto`, `--no-spinner`, `--sandbox`
+- ✅ Verrou de session (flock, libéré à la mort du processus ; no-op sous Windows)
+- ✅ Purge des sessions (`/clear` supprime le fichier) — ⬜ chiffrement au repos (v0.3)
+- ✅ `env` et `cwd` par serveur dans `mcp.json` (`cwd` via wrapper `sh -c`, Unix)
+- ✅ Streaming SSE assumé comme non supporté (rejet explicite, documenté)
+- ✅ Timeouts configurables : `DEEPSEEK_BASH_TIMEOUT`, `DEEPSEEK_MCP_TIMEOUT`, `DEEPSEEK_HTTP_TIMEOUT`
 - ✅ CI GitHub Actions : `gofmt`, `go vet`, `go test -race`, e2e, build 3 OS, `govulncheck`
-- ⬜ `goreleaser` : binaires signés, `SHA256SUMS`, notes de version
+- 🚧 `goreleaser` : release manuelle v0.2.0 avec binaires + `SHA256SUMS` ; automatisation à venir
 
 ## v0.3 — Sécurité 🚧
 

@@ -5,7 +5,10 @@
 
 package main
 
-import "os/exec"
+import (
+	"os"
+	"os/exec"
+)
 
 // setProcessGroup : Windows n'a pas de groupe de processus POSIX. On garde un
 // no-op explicite plutôt qu'un comportement spécifique non testé.
@@ -18,3 +21,9 @@ func killProcessGroup(cmd *exec.Cmd) {
 		_ = cmd.Process.Kill()
 	}
 }
+
+// verrouExclusif : Windows n'a pas de flock POSIX. On n'empêche pas deux
+// instances de partager une session (limitation connue, documentée dans ERRATA).
+func verrouExclusif(f *os.File) error { return nil }
+
+func libereVerrou(f *os.File) {}

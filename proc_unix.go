@@ -6,6 +6,7 @@
 package main
 
 import (
+	"os"
 	"os/exec"
 	"syscall"
 )
@@ -24,4 +25,14 @@ func killProcessGroup(cmd *exec.Cmd) {
 	}
 	_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 	_ = cmd.Process.Kill()
+}
+
+// verrouExclusif pose un verrou advisory non bloquant sur le fichier (flock).
+// Il est libéré automatiquement à la mort du processus : pas de verrou périmé.
+func verrouExclusif(f *os.File) error {
+	return syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+}
+
+func libereVerrou(f *os.File) {
+	_ = syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 }

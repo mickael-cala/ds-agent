@@ -276,6 +276,52 @@ le précise.
 
 ---
 
+### ERRATA-102 — `SIGTERM` ignoré, arrêt sale 🟠
+
+**Symptôme.** `kill`, `systemd stop`, fermeture du terminal : les serveurs MCP enfants
+survivaient et la session n'était pas sauvegardée.
+
+**Correction.** `signal.Notify(…, SIGTERM)` : sauvegarde de l'historique **nettoyé** (les
+`tool_calls` sans réponse sont retirés, sinon le prochain chargement serait rejeté),
+fermeture des serveurs MCP, sortie `0`.
+
+**Verrou.** `TestSaveSessionPropre`.
+
+### ERRATA-105 — `mcp.json` sans `env` ni `cwd` 🟡
+
+**Symptôme.** Impossible de passer une variable ou de choisir un répertoire de démarrage
+par serveur MCP ; seul `MCP_ROOT` était injecté.
+
+**Correction.** `MCPConfig` accepte `env` (filtré par les mêmes règles que les autres
+processus enfants) et `cwd` (wrapper `sh -c` avec arguments positionnels, donc sans
+concaténation shell). `cwd` n'est pas disponible sous Windows.
+
+**Verrou.** `TestMCPConfigEnvEtCwd`, `TestCommandeMCP`.
+
+### ERRATA-106 — Aucun argument CLI 🟡
+
+**Symptôme.** `ds-agent --help` lançait le REPL ; impossible de scripter un one-shot ou de
+savoir quelle build tournait.
+
+**Correction.** `--help` (aide complète : drapeaux, variables, commandes), `--version`
+(version injectable par `-ldflags -X main.version=…`), `--dir`, `--model`, `--auto`,
+`--no-spinner`, `--sandbox`. Un drapeau inconnu affiche l'aide et sort en code 2.
+
+**Verrou.** `TestParseOptionsAide`, `TestUsage`, `TestParseOptions`, `TestParseOptionsInconnu`.
+
+### ERRATA-107 — Pas de verrou de session 🟡
+
+**Symptôme.** Deux instances dans le même répertoire partageaient le même fichier de
+session (nom = hash du répertoire) : écrasements mutuels, historique incohérent.
+
+**Correction.** `prendreVerrouSession()` pose un `flock` non bloquant sur `<session>.lock` ;
+la deuxième instance refuse de démarrer avec un message explicite. Le verrou est libéré à la
+mort du processus, donc jamais périmé. No-op sous Windows (documenté).
+
+**Verrou.** `TestVerrouSession`.
+
+---
+
 ## 2. Défauts ouverts
 
 ### ERRATA-101 — Streaming SSE non supporté 🟡
@@ -285,22 +331,14 @@ demandé est rejeté (`streaming non implémenté`).
 
 **Parade.** Erreur explicite, pas de fuite mémoire ni de blocage ; voir ROADMAP v0.2.
 
-### ERRATA-102 — `SIGTERM` non géré 🟠
-
-**Symptôme.** `kill`, `systemd stop`, fermeture du terminal Termux : les serveurs MCP
-enfants peuvent survivre, la session n'est pas sauvegardée.
-
-**Cause.** Seul `os.Interrupt` (SIGINT) est intercepté.
-
-**Parade.** Terminer par `Ctrl+C` puis `/exit`. Correctif prévu (ROADMAP v0.2).
-
 ### ERRATA-103 — Sessions en clair dans `$TMPDIR` 🟠
 
 **Symptôme.** L'historique complet (extraits de code, chemins, commandes) est écrit en
-JSON non chiffré, lisible par l'utilisateur et tout processus du même compte.
+JSON **non chiffré** dans `~/.config/ds-agent/sessions/` (corrigé depuis : plus de `/tmp`
+partagé, permissions `0600`, écriture atomique).
 
-**Parade.** Permissions `0600`, répertoire `0700` ; nettoyage manuel avec
-`rm -rf "$TMPDIR/ds-sessions"`. Chiffrement/purge prévus (ROADMAP v0.2).
+**Parade.** `/clear` supprime le fichier, `./clean.sh` supprime le dossier ; chiffrement au
+repos prévu en v0.3.
 
 ### ERRATA-104 — Estimation de tokens `len/4` 🟡
 
@@ -309,26 +347,6 @@ texte accentué ou non latin.
 
 **Parade.** Marge volontairement pessimiste + plafond par message ; augmenter
 `DEEPSEEK_CONTEXT_TOKENS` si des `400` persistent.
-
-### ERRATA-105 — `mcp.json` sans `env` ni `cwd` 🟡
-
-**Symptôme.** Impossible de passer des variables ou de fixer un répertoire de démarrage
-par serveur ; seul `MCP_ROOT` est injecté.
-
-**Parade.** Configurer ces paramètres dans un wrapper shell comme `command`.
-
-### ERRATA-106 — Aucun argument CLI 🟡
-
-**Symptôme.** `ds-agent --help` lance le REPL ; impossible de scripter un one-shot.
-
-**Parade.** Utiliser le REPL ; flags prévus (ROADMAP v0.2).
-
-### ERRATA-107 — Pas de verrou de session 🟡
-
-**Symptôme.** Deux instances lancées dans le même répertoire partagent le même fichier
-de session (nom = SHA-256 du répertoire) : écrasements mutuels, historique incohérent.
-
-**Parade.** Une seule instance par répertoire.
 
 ### ERRATA-108 — `local_web_fetch` sans liste blanche 🟡
 

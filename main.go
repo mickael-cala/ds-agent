@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 	"unicode/utf8"
 
@@ -44,6 +45,8 @@ const (
 	defaultBashT         = 120
 	maxAttempts          = 4
 	defaultMaxIterations = 30
+	defaultHTTPT         = 300      // DEEPSEEK_HTTP_TIMEOUT (s)
+	defaultMCPT          = 60       // DEEPSEEK_MCP_TIMEOUT (s)
 	maxAPIBody           = 32 << 20 // 32 Mo
 	maxURLLen            = 2048     // longueur max d'une URL de local_web_fetch
 )
@@ -148,6 +151,8 @@ type FetchResponse struct {
 type MCPConfig struct {
 	Command string
 	Args    []string
+	Env     []string // variables supplémentaires (filtrées comme les autres)
+	Cwd     string   // répertoire de démarrage (wrapper sh -c, Unix uniquement)
 }
 type MCPServerInstance struct {
 	Name   string
@@ -187,6 +192,8 @@ type Agent struct {
 	maxSessionTokens int  // DEEPSEEK_MAX_TOKENS (0 = pas de plafond)
 	spentTokens      int  // total estimé envoyé depuis le démarrage
 	bashTimeout      int  // DEEPSEEK_BASH_TIMEOUT en secondes
+	httpTimeout      int  // DEEPSEEK_HTTP_TIMEOUT en secondes
+	mcpTimeout       int  // DEEPSEEK_MCP_TIMEOUT en secondes
 	restored         int  // messages rechargés au démarrage
 	verbose          bool // /verbose : affiche le contenu des sorties d'outils
 
@@ -296,6 +303,31 @@ func validModelName(s string) bool {
 	return strings.HasPrefix(s, "deepseek-") || strings.Contains(s, "/")
 }
 
+// usage décrit les drapeaux et les commandes du REPL.
+func usage() string {
+	return `ds-agent — agent de codage en terminal (DeepSeek)
+
+usage : ds-agent [options]
+
+options :
+  -version        affiche la version et quitte
+  -dir <chemin>   répertoire de travail (défaut : courant)
+  -model <nom>    modèle (défaut : DEEPSEEK_MODEL ou deepseek-chat)
+  -auto           auto-approbation : aucune confirmation
+  -no-spinner     désactive l'animation (automatique hors terminal)
+  -sandbox        confine local_bash avec bubblewrap (bwrap requis)
+  -h, -help       affiche cette aide
+
+variables : DEEPSEEK_API_KEY (obligatoire), DEEPSEEK_MODEL, DEEPSEEK_API_BASE,
+  DEEPSEEK_CONTEXT_TOKENS, DEEPSEEK_MAX_ITERATIONS, DEEPSEEK_MAX_TOKENS,
+  DEEPSEEK_BASH_TIMEOUT, DEEPSEEK_HTTP_TIMEOUT, DEEPSEEK_MCP_TIMEOUT,
+  DEEPSEEK_SANDBOX, DEEPSEEK_AUDIT
+
+commandes : /help /status /verbose /model /think /auto /clear /exit
+  et les modes /mandalorian /bladerunner /terminator /matrix /rabbithole /godmode
+`
+}
+
 type options struct {
 	Version   bool
 	Dir       string
@@ -309,6 +341,7 @@ type options struct {
 func parseOptions(args []string) (options, error) {
 	var o options
 	fs := flag.NewFlagSet("ds-agent", flag.ContinueOnError)
+	fs.SetOutput(io.Discard) // l'aide détaillée est fournie par usage()
 	fs.BoolVar(&o.Version, "version", false, "affiche la version et quitte")
 	fs.StringVar(&o.Dir, "dir", "", "répertoire de travail (défaut : courant)")
 	fs.StringVar(&o.Model, "model", "", "modèle DeepSeek (défaut : DEEPSEEK_MODEL ou deepseek-chat)")
@@ -323,8 +356,12 @@ func parseOptions(args []string) (options, error) {
 
 func main() {
 	opts, err := parseOptions(os.Args[1:])
+	if errors.Is(err, flag.ErrHelp) {
+		fmt.Print(usage())
+		return
+	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "arguments invalides :", err)
+		fmt.Fprintf(os.Stderr, "arguments invalides : %v\n\n%s", err, usage())
 		os.Exit(2)
 	}
 	if opts.Version {
@@ -368,8 +405,10 @@ func main() {
 		maxIterations:    envInt("DEEPSEEK_MAX_ITERATIONS", defaultMaxIterations),
 		maxSessionTokens: envInt("DEEPSEEK_MAX_TOKENS", 0),
 		bashTimeout:      envInt("DEEPSEEK_BASH_TIMEOUT", defaultBashT),
+		httpTimeout:      envInt("DEEPSEEK_HTTP_TIMEOUT", defaultHTTPT),
+		mcpTimeout:       envInt("DEEPSEEK_MCP_TIMEOUT", defaultMCPT),
 		scanner:          bufio.NewScanner(os.Stdin),
-		http:             &http.Client{Timeout: 300 * time.Second},
+		http:             &http.Client{Timeout: time.Duration(envInt("DEEPSEEK_HTTP_TIMEOUT", defaultHTTPT)) * time.Second},
 		spinnerChan:      make(chan bool),
 	}
 	if opts.Model != "" {
@@ -383,15 +422,31 @@ func main() {
 	a.prompter = newPrompter(a.scanner)
 	a.secrets = collectSecrets()
 	a.sessionPath = sessionPath(wd)
+	// Une seule instance par session : deux processus qui écrivent le même
+	// fichier en alternance produisent un historique incohérent (ERRATA-107).
+	verrou, err := prendreVerrouSession(a.sessionPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "[session] %v\n", err)
+		os.Exit(1)
+	}
+	defer verrou.Close()
 
 	a.loadSession()
 	a.initMCPServers()
 
 	// PROTOCOLE AGENT SMITH (Interception Ctrl+C)
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		for range c {
+		for sig := range c {
+			if sig == syscall.SIGTERM {
+				// Arrêt demandé par le système : on sauvegarde un historique propre
+				// (sans tool_call en attente) et on ferme les serveurs MCP.
+				fmt.Print("\n\n[ARRÊT] SIGTERM reçu : sauvegarde de la session...\n")
+				a.saveSessionPropre()
+				a.closeMCPServers()
+				os.Exit(0)
+			}
 			a.cancelMu.Lock()
 			if a.cancelFunc != nil {
 				fmt.Print("\n\n🕶️ [AGENT SMITH] Anomalie détectée. Processus DeepSeek interrompu...\n")
@@ -473,6 +528,18 @@ func main() {
 // 5. GESTION DES SERVEURS MCP
 // ==========================================
 
+// commandeMCP construit la commande effective d'un serveur MCP.
+// Le client stdio de mcp-go n'expose pas de répertoire de travail : quand `cwd`
+// est demandé, on passe par un wrapper `sh -c` (Unix), les arguments étant
+// transmis en positionnels pour éviter toute injection de shell.
+func commandeMCP(cfg MCPConfig) (string, []string) {
+	if cfg.Cwd == "" {
+		return cfg.Command, cfg.Args
+	}
+	args := append([]string{"-c", `cd "$1" || exit 1; shift; exec "$@"`, "sh", cfg.Cwd, cfg.Command}, cfg.Args...)
+	return "sh", args
+}
+
 func (a *Agent) initMCPServers() {
 	data, err := os.ReadFile(filepath.Join(a.workDir, "mcp.json"))
 	if err != nil {
@@ -492,8 +559,9 @@ func (a *Agent) initMCPServers() {
 	for _, name := range noms {
 		cfg := configs[name]
 		fmt.Printf("[MCP] Démarrage '%s'...\n", sanitizeTerm(name))
-		env := childEnv("MCP_ROOT=" + a.workDir)
-		mcpClient, err := client.NewStdioMCPClient(cfg.Command, env, cfg.Args...)
+		env := append(childEnv("MCP_ROOT="+a.workDir), cfg.Env...)
+		commande, args := commandeMCP(cfg)
+		mcpClient, err := client.NewStdioMCPClient(commande, env, args...)
 		if err != nil {
 			fmt.Printf("[MCP] '%s' : démarrage échoué : %v\n", name, err)
 			continue
@@ -966,7 +1034,11 @@ func (a *Agent) toolMCPSend(ctx context.Context, mcpClient client.MCPClient, too
 	req := mcp.CallToolRequest{}
 	req.Params.Name, req.Params.Arguments = toolName, args
 
-	tCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	limiteMCP := a.mcpTimeout
+	if limiteMCP <= 0 {
+		limiteMCP = defaultMCPT
+	}
+	tCtx, cancel := context.WithTimeout(ctx, time.Duration(limiteMCP)*time.Second)
 	defer cancel()
 
 	res, err := mcpClient.CallTool(tCtx, req)
@@ -1761,6 +1833,43 @@ func writeFileAtomic(path string, data []byte, perm os.FileMode) error {
 	}
 	name = ""
 	return nil
+}
+
+// verrouSession matérialise le verrou exclusif d'une session.
+type verrouSession struct{ f *os.File }
+
+func prendreVerrouSession(chemin string) (*verrouSession, error) {
+	f, err := os.OpenFile(chemin+".lock", os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		return nil, fmt.Errorf("verrou de session impossible : %w", err)
+	}
+	if err := verrouExclusif(f); err != nil {
+		f.Close()
+		return nil, fmt.Errorf("une autre instance utilise déjà cette session (%s)", chemin)
+	}
+	return &verrouSession{f: f}, nil
+}
+
+func (v *verrouSession) Close() {
+	if v != nil && v.f != nil {
+		libereVerrou(v.f)
+		_ = v.f.Close()
+	}
+}
+
+// saveSessionPropre retire les appels d'outils sans réponse avant sauvegarde :
+// un historique terminé par un tool_call en attente serait refusé au prochain
+// démarrage (message tool orphelin).
+func (a *Agent) saveSessionPropre() {
+	for len(a.history) > 0 {
+		d := a.history[len(a.history)-1]
+		if d.Role == "tool" || (d.Role == "assistant" && len(d.ToolCalls) > 0) {
+			a.history = a.history[:len(a.history)-1]
+			continue
+		}
+		break
+	}
+	a.saveSession()
 }
 
 func (a *Agent) loadSession() {

@@ -21,6 +21,7 @@ go test ./...                       # tests unitaires (racine, 6 tests)
 gofmt -l -w . && go vet ./...        # format + analyse
 ( cd audit_api && make )            # fmt + vet + test + build du sous-projet
 bash tests/paranoid.sh ; echo $?    # banc hostile — doit valoir 0
+go test -count=1 ./...              # 57 tests
 ./scripts/check-secrets.sh         # aucun jeton ni fichier interdit versionné
 ```
 

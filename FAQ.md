@@ -42,8 +42,9 @@ Oui, c'est la plateforme de développement (arm64). `pkg install golang git`, pu
 ## Utilisation
 
 **Quels sont les drapeaux disponibles ?**
-`--version`, `--dir <chemin>`, `--model <nom>`, `--auto`, `--no-spinner`. L'animation est
-coupée automatiquement quand la sortie n'est pas un terminal.
+`--help` (aide complète), `--version`, `--dir <chemin>`, `--model <nom>`, `--auto`,
+`--no-spinner`, `--sandbox`. L'animation est coupée automatiquement quand la sortie n'est
+pas un terminal.
 
 **Comment tout nettoyer ?**
 `./clean.sh` (ou `clean.cmd` sous Windows) supprime le binaire, les sessions et le journal
@@ -61,6 +62,10 @@ Ils ajoutent une consigne au prompt système (brièveté, audit sécurité, acha
 profondeur). Ils sont cumulables ; `/mandalorian` seul suffit pour du code brut sans
 bavardage. `/godmode` supprime toutes les confirmations — à vos risques.
 
+**Et si je ferme le terminal ou fais `kill` ?**
+`SIGTERM` déclenche une sauvegarde propre : l'historique est nettoyé des appels d'outils
+sans réponse, les serveurs MCP sont fermés, puis l'agent quitte (ERRATA-102).
+
 **Comment annuler une tâche en cours ?**
 `Ctrl+C` une fois : annulation de la tâche (soft-kill), l'historique de conversation est
 restauré — **pas les fichiers déjà écrits** (utiliser les checkpoints git).
@@ -73,7 +78,8 @@ Oui, automatiquement : relancer l'agent dans le même répertoire recharge la se
 Ancien emplacement (`$TMPDIR/ds-sessions`) : supprimable sans risque.
 
 **Deux instances en parallèle ?**
-Elles partagent le même fichier de session (ERRATA-107) : une seule instance par répertoire.
+Non : un verrou exclusif (`flock`) protège la session, la deuxième instance refuse de démarrer.
+Le verrou est libéré à la mort du processus, donc jamais périmé (ERRATA-107).
 
 ## Outils & MCP
 

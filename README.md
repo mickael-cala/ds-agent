@@ -2,7 +2,7 @@
 
 [![Go](https://img.shields.io/badge/Go-%E2%89%A5%201.22-00ADD8)](https://go.dev)
 [![Licence](https://img.shields.io/badge/licence-AGPL--3.0%20%7C%20commercial-blue)](LICENSING.md)
-[![Statut](https://img.shields.io/badge/statut-v0.2--dev-orange)](STATUS.md)
+[![Statut](https://img.shields.io/badge/statut-v0.2.0-orange)](STATUS.md)
 [![CI](https://github.com/mickael-cala/ds-agent/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 
 Agent de codage en terminal, écrit en Go, propulsé par l'API **DeepSeek**.
@@ -62,7 +62,8 @@ Fichier principal : `main.go` (agent monolithique, ~1 200 lignes). Aucun framewo
 - **Chain-of-Thought** : `thinking` + `reasoning_effort` (affichage du `reasoning_content`).
 - **6 outils natifs** ancrés dans le répertoire de travail (`local_*`) + outils MCP (`mcp_*`).
 - **Serveurs MCP stdio** déclarés dans `mcp.json`, outils injectés dynamiquement.
-- **Sessions persistantes** (`~/.config/ds-agent/sessions`, une par répertoire, écriture atomique).
+- **Sessions persistantes** (`~/.config/ds-agent/sessions`, une par répertoire, écriture atomique,
+  verrou exclusif : une seule instance à la fois).
 - **Compaction de contexte** : estimation pessimiste des tokens, plafonnement par message,
   conservation d'une fenêtre récente — l'historique ne dépasse jamais le budget.
 - **Checkpoints git** automatiques avant chaque écriture / édition (si le dossier est un dépôt git).
@@ -116,6 +117,8 @@ Tout passe par des variables d'environnement :
 | `DEEPSEEK_MAX_ITERATIONS` | `30` | Itérations max par tâche (999 en `/rabbithole`) |
 | `DEEPSEEK_MAX_TOKENS` | `0` | Plafond de tokens envoyés par session (0 = illimité) |
 | `DEEPSEEK_BASH_TIMEOUT` | `120` | Délai max d'un `local_bash`, en secondes |
+| `DEEPSEEK_HTTP_TIMEOUT` | `300` | Délai max d'une requête à l'API |
+| `DEEPSEEK_MCP_TIMEOUT` | `60` | Délai max d'un appel d'outil MCP |
 | `DEEPSEEK_AUDIT` | `on` | `off` désactive le journal d'audit |
 | `MCP_ROOT_SECRET` | — | Secret exigé par le serveur MCP pour `change_root` |
 | `MCP_ROOT` | répertoire courant | Injecté dans les serveurs MCP au démarrage |
@@ -140,6 +143,7 @@ ne déplace que la racine du serveur MCP.
 | `--auto` | auto-approbation (aucune confirmation) |
 | `--no-spinner` | désactive l'animation (automatique hors TTY) |
 | `--sandbox` | confine `local_bash` avec bubblewrap (racine en lecture seule) |
+| `-h`, `--help` | aide complète : drapeaux, variables, commandes |
 
 Commandes du REPL :
 

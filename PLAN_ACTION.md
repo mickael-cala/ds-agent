@@ -22,9 +22,10 @@ Règles du jeu :
 | 5 | Confiance vérifiable (hors plan initial) | 5 | ✅ fait | `2e69ceb` |
 | 6 | Renommage du module & publication | 5 | ✅ fait | `24917e5` |
 | 7 | Hygiène avant release | 5 | ✅ fait | `08d29bc` |
+| 8 | Finaliser v0.2 | 5 | ✅ fait | sprint 8 |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
-**Bilan : 30/30 items livrés**, 50 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
+**Bilan : 35/35 items livrés**, 57 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
 CI multi-plateforme, documentation à jour.
 
 ---
@@ -106,6 +107,16 @@ Objectif : rendre les garde-fous **prouvables par une machine**, pas seulement p
 | 7.4 | Une ligne de résumé par outil + `/verbose` | U03 | `TestResumeOutil` | ✅ |
 | 7.5 | `scripts/check-secrets.sh` en CI et en local | C15 | `TestCheckSecrets` | ✅ |
 | 7.6 | Dettes documentaires : `U15` marqué corrigé (sprint 3), `ANALYSE_main.md` daté | U15, D15 | relecture | ✅ |
+
+## Sprint 8 — « finaliser v0.2 »
+
+| # | Item | Réf. | Test / preuve | Statut |
+|---|---|---|---|---|
+| 8.1 | `mcp.json` : `env` et `cwd` par serveur (wrapper `sh -c`, arguments positionnels) | ERRATA-105 | `TestMCPConfigEnvEtCwd`, `TestCommandeMCP` | ✅ |
+| 8.2 | Délais configurables : `DEEPSEEK_HTTP_TIMEOUT`, `DEEPSEEK_MCP_TIMEOUT` | ROADMAP v0.2 | `TestDelaisDepuisEnvironnement` | ✅ |
+| 8.3 | `SIGTERM` : sauvegarde propre sans tool call en attente, fermeture MCP | ERRATA-102 | `TestSaveSessionPropre` | ✅ |
+| 8.4 | `--help` : aide complète (drapeaux, variables, commandes) | ERRATA-106 | `TestParseOptionsAide`, `TestUsage` | ✅ |
+| 8.5 | Verrou de session (`flock`), une seule instance par répertoire | ERRATA-107 | `TestVerrouSession` | ✅ |
 
 ## Réserve (non planifié)
 

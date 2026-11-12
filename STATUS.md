@@ -9,7 +9,7 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 | Indicateur | État |
 |---|---|
 | Build | ✅ `go build .` sans warning |
-| Tests unitaires | ✅ 50/50 (`go test ./...`, après sprint 7) |
+| Tests unitaires | ✅ 57/57 (`go test ./...`, après sprint 8) |
 | Sous-projet `audit_api` | ✅ 4/4 (`cd audit_api && go test ./...`) |
 | Banc hostile | ✅ 16 scénarios, 0 échec critique (`tests/paranoid.sh`) |
 | `gofmt` | ✅ aucun fichier à reformater |
@@ -58,7 +58,6 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 | D2 | Estimation de tokens `len/4` (pas de tokenizer) | compaction approximative | ERRATA-104 |
 | D4 | Sessions en clair dans `~/.config` (chemin corrigé, contenu non chiffré) | fuite de code/historique sur poste partagé | ERRATA-103 |
 | D5 | `audit_api/` est un module Go séparé | couvert par un job CI dédié | `.github/workflows/ci.yml` |
-| D6 | Un seul `SIGINT` géré, pas de `SIGTERM` | arrêt sale via `kill`/systemd | ERRATA-102 |
 | D9 | Journal d'audit non borné en taille | croissance lente de `audit.jsonl` | C09, ROADMAP v0.3 |
 | D8 | `go.mod` déclare `go 1.27.1` | toolchains antérieures refusées | ERRATA-109 |
 | D10 | Binaire sans version par défaut (`dev`) | release à produire via ldflags | D13 |
