@@ -1,4 +1,4 @@
-module my_go_project
+module github.com/mickael-cala/ds-agent
 
 go 1.27.1
 

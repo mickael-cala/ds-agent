@@ -10,7 +10,7 @@ set -euo pipefail
 # ==========================================
 # Configuration
 # ==========================================
-MODULE_NAME="my_go_project"
+MODULE_NAME="github.com/mickael-cala/ds-agent"
 MAIN_FILE="main.go"
 OUTPUT_EXE="ds-agent"          # pas de .exe sous Linux
 

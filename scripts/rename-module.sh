@@ -43,10 +43,10 @@ sed -i "s|github.com/OWNER/ds-agent|github.com/$owner/$repo|g" README.md 2>/dev/
 echo
 echo "— vérifications —"
 gofmt -l . | grep . && { echo "gofmt : fichiers à formater" >&2; exit 1; }
-go build ./...
+go build -o /dev/null .
 go vet ./...
 go test -count=1 ./...
-( cd audit_api && go build ./... && go vet ./... && go test -count=1 ./... )
+( cd audit_api && go build -o /dev/null . && go vet ./... && go test -count=1 ./... )
 bash tests/e2e.sh >/dev/null
 bash tests/paranoid.sh >/dev/null
 echo

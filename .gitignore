@@ -8,6 +8,7 @@ ds-agent.exe
 *.so
 *.dylib
 audit_api/audit
+audit_api/audit_api
 *.test
 *.out
 coverage*

@@ -89,9 +89,9 @@ Objectif : rendre les garde-fous **prouvables par une machine**, pas seulement p
 |---|---|---|---|---|
 | 6.1 | `scripts/rename-module.sh` : go.mod, `audit_api`, scripts, badge, vérifications | D01 | exécuté sur une copie (`exemple-org`) : build + 2 modules + e2e + banc | ✅ |
 | 6.2 | `PUBLISHING.md` : création du dépôt, auth, contrôles, push, après-push | — | relecture | ✅ |
-| 6.3 | Application au compte réel | D01 | `scripts/rename-module.sh <compte>` | ⬜ en attente du compte |
-| 6.4 | Réécriture des auteurs des 8 commits | — | `git log --format='%an <%ae>'` | ⬜ en attente |
-| 6.5 | Push, CI verte, badge aligné, protection de branche | C10 | onglet Actions | ⬜ en attente |
+| 6.3 | Application au compte réel : `mickael-cala` | D01 | `head -1 go.mod` → `github.com/mickael-cala/ds-agent` | ✅ |
+| 6.4 | Réécriture des auteurs des commits | — | `git log --format='%an <%ae>'` | ✅ |
+| 6.5 | Push, CI verte, badge aligné, protection de branche | C10 | onglet Actions | ⬜ auth GitHub requise |
 
 ## Réserve (non planifié)
 

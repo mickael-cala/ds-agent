@@ -6,11 +6,12 @@ pointeront vers un chemin qui n'existe pas).
 
 ## 0. État actuel
 
-- Dépôt git initialisé sur `main`, 8 commits, **aucun remote**, aucune authentification
-  configurée sur cette machine (pas de `gh`, pas de `~/.git-credentials`, pas de clé privée SSH).
-- Le module s'appelle encore `my_go_project` et le sous-projet `audit` (constat D01).
-- Les commits sont signés `ds-agent <ds-agent@users.noreply.github.com>` (identité de
-  travail, à remplacer par la vôtre : §3).
+- Compte retenu : **`mickael-cala`** → dépôt `https://github.com/mickael-cala/ds-agent`.
+- Module : `github.com/mickael-cala/ds-agent` (+ `…/audit_api`) — renommage effectué (§2 ✅).
+- Remote `origin` configuré, **aucune authentification** sur cette machine (pas de `gh`,
+  pas de `~/.git-credentials`, pas de clé privée SSH) : le push échouera tant que §4 n'est
+  pas fait.
+- Commits réattribués à `mickael-cala <mickael-cala@users.noreply.github.com>`.
 
 ## 1. Créer le dépôt
 

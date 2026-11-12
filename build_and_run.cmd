@@ -7,7 +7,7 @@ setlocal
 REM ==========================================
 REM Configuration
 REM ==========================================
-set MODULE_NAME=my_go_project
+set MODULE_NAME=github.com/mickael-cala/ds-agent
 set MAIN_FILE=main.go
 set OUTPUT_EXE=ds-agent.exe
 

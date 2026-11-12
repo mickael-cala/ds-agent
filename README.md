@@ -3,7 +3,7 @@
 [![Go](https://img.shields.io/badge/Go-%E2%89%A5%201.22-00ADD8)](https://go.dev)
 [![Licence](https://img.shields.io/badge/licence-AGPL--3.0%20%7C%20commercial-blue)](LICENSING.md)
 [![Statut](https://img.shields.io/badge/statut-v0.2--dev-orange)](STATUS.md)
-[![CI](https://github.com/OWNER/ds-agent/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+[![CI](https://github.com/mickael-cala/ds-agent/actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 
 Agent de codage en terminal, écrit en Go, propulsé par l'API **DeepSeek**.
 Il boucle sur des *tool calls* : lire, écrire, patcher, exécuter du shell, chercher
