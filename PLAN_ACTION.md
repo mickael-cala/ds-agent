@@ -20,7 +20,7 @@ Règles du jeu :
 | 3 | Exploitation & traçabilité | 5 | ✅ fait | `3bf173e` |
 | 4 | Confort & pilotage | 5 | ✅ fait | `8e75ab9` |
 | 5 | Confiance vérifiable (hors plan initial) | 5 | ✅ fait | `2e69ceb` |
-| 6 | Renommage du module & publication | 5 | 🚧 4/5 (push en attente d'auth) | `0fb4ce4` |
+| 6 | Renommage du module & publication | 5 | ✅ fait | `24917e5` |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
 **Bilan : 25/25 items livrés**, 43 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
@@ -93,7 +93,7 @@ Objectif : rendre les garde-fous **prouvables par une machine**, pas seulement p
 | 6.2 | `PUBLISHING.md` : création du dépôt, auth, contrôles, push, après-push | — | relecture | ✅ |
 | 6.3 | Application au compte réel : `mickael-cala` | D01 | `head -1 go.mod` → `github.com/mickael-cala/ds-agent` | ✅ |
 | 6.4 | Réécriture des auteurs des commits | — | `git log --format='%an <%ae>'` | ✅ |
-| 6.5 | Push effectué, CI : 7/8 jobs verts, `govulncheck` corrigé par la version de Go | C10 | run #2 attendu | 🚧 protection de branche à activer |
+| 6.5 | Push, CI **8/8 jobs verts** (run #2), badge actif | C10 | <https://github.com/mickael-cala/ds-agent/actions> | ✅ |
 
 ## Réserve (non planifié)
 
