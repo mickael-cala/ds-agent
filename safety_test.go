@@ -74,6 +74,10 @@ func TestDiffHunkTronque(t *testing.T) {
 // --- Sprint 1.1 : le spinner se suspend pendant une question (U01) ---
 
 func TestSpinnerPauseResume(t *testing.T) {
+	old := spinnerEnabled
+	spinnerEnabled = true
+	defer func() { spinnerEnabled = old }()
+
 	a := &Agent{spinnerChan: make(chan bool)}
 	a.startSpinner("test")
 	if !a.spinnerActive {

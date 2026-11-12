@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"math/rand"
@@ -271,7 +272,69 @@ func defaultModel() string {
 	return "deepseek-chat"
 }
 
+// version est injectable : go build -ldflags "-X main.version=v1.2.3".
+var version = "dev"
+
+// spinnerEnabled dépend du terminal : dans un pipe ou un log CI, une animation
+// ANSI ne produit que du bruit. --no-spinner force l'arrêt.
+var spinnerEnabled = isTerminal(os.Stdout)
+
+func isTerminal(f *os.File) bool {
+	fi, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return fi.Mode()&os.ModeCharDevice != 0
+}
+
+// validModelName évite qu'une faute de frappe ne se transforme en HTTP 400
+// au tour suivant : deepseek-… ou identifiant qualifié fournisseur/modèle.
+func validModelName(s string) bool {
+	return strings.HasPrefix(s, "deepseek-") || strings.Contains(s, "/")
+}
+
+type options struct {
+	Version   bool
+	Dir       string
+	Model     string
+	Auto      bool
+	NoSpinner bool
+}
+
+// parseOptions isole le parsing des drapeaux pour pouvoir le tester.
+func parseOptions(args []string) (options, error) {
+	var o options
+	fs := flag.NewFlagSet("ds-agent", flag.ContinueOnError)
+	fs.BoolVar(&o.Version, "version", false, "affiche la version et quitte")
+	fs.StringVar(&o.Dir, "dir", "", "répertoire de travail (défaut : courant)")
+	fs.StringVar(&o.Model, "model", "", "modèle DeepSeek (défaut : DEEPSEEK_MODEL ou deepseek-chat)")
+	fs.BoolVar(&o.Auto, "auto", false, "auto-approbation (aucune confirmation)")
+	fs.BoolVar(&o.NoSpinner, "no-spinner", false, "désactive l'animation")
+	if err := fs.Parse(args); err != nil {
+		return o, err
+	}
+	return o, nil
+}
+
 func main() {
+	opts, err := parseOptions(os.Args[1:])
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "arguments invalides :", err)
+		os.Exit(2)
+	}
+	if opts.Version {
+		fmt.Printf("ds-agent %s (%s/%s)\n", version, runtime.GOOS, runtime.GOARCH)
+		return
+	}
+	if opts.NoSpinner {
+		spinnerEnabled = false
+	}
+	if opts.Dir != "" {
+		if err := os.Chdir(opts.Dir); err != nil {
+			fmt.Fprintf(os.Stderr, "répertoire invalide : %v\n", err)
+			os.Exit(1)
+		}
+	}
 	apiKey := os.Getenv(apiKeyEnv)
 	if apiKey == "" {
 		fmt.Println("Erreur: Définissez la variable DEEPSEEK_API_KEY")
@@ -292,6 +355,13 @@ func main() {
 		scanner:          bufio.NewScanner(os.Stdin),
 		http:             &http.Client{Timeout: 300 * time.Second},
 		spinnerChan:      make(chan bool),
+	}
+	if opts.Model != "" {
+		if !validModelName(opts.Model) {
+			fmt.Fprintf(os.Stderr, "modèle invalide : %s (attendu : deepseek-… ou un identifiant contenant '/')\n", opts.Model)
+			os.Exit(2)
+		}
+		a.model = opts.Model
 	}
 	a.scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024)
 	a.prompter = newPrompter(a.scanner)
@@ -333,7 +403,7 @@ func main() {
 	fmt.Printf("Audit : %s | /help, /status\n", auditPath())
 
 	for {
-		fmt.Printf("\n[%s] Vous > ", a.model)
+		fmt.Printf("\n[%s] Vous > ", a.promptLabel())
 		if !a.scanner.Scan() {
 			break
 		}
@@ -398,8 +468,14 @@ func (a *Agent) initMCPServers() {
 		return
 	}
 
-	for name, cfg := range configs {
-		fmt.Printf("[MCP] Démarrage '%s'...\n", name)
+	noms := make([]string, 0, len(configs))
+	for name := range configs {
+		noms = append(noms, name)
+	}
+	sort.Strings(noms) // ordre déterministe : prompt et comportement reproductibles
+	for _, name := range noms {
+		cfg := configs[name]
+		fmt.Printf("[MCP] Démarrage '%s'...\n", sanitizeTerm(name))
 		env := childEnv("MCP_ROOT=" + a.workDir)
 		mcpClient, err := client.NewStdioMCPClient(cfg.Command, env, cfg.Args...)
 		if err != nil {
@@ -1413,6 +1489,11 @@ func (a *Agent) tokenBudget() int {
 		limit = defaultContextTokens
 	}
 	budget := limit - reserveOutputTokens
+	// Le schéma JSON des outils part dans chaque requête : il consomme du contexte
+	// même s'il ne figure dans aucun message (D07).
+	if raw, err := json.Marshal(a.getTools()); err == nil {
+		budget -= estTokens(string(raw))
+	}
 	if budget < 4000 {
 		budget = 4000
 	}
@@ -1678,6 +1759,9 @@ func (c *cappedBuffer) String() string {
 func (a *Agent) startSpinner(msg string) {
 	a.haltSpinner()
 	a.spinnerMsg = msg
+	if !spinnerEnabled {
+		return // pas de TTY (ou --no-spinner) : pas d'artefacts ANSI
+	}
 	a.spinnerActive = true
 	go func() {
 		chars := []rune{'⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'}
@@ -1718,6 +1802,34 @@ func (a *Agent) resumeSpinner() {
 	if !a.spinnerActive && a.spinnerMsg != "" {
 		a.startSpinner(a.spinnerMsg)
 	}
+}
+
+// promptLabel rend l'invite lisible : modèle + modes actifs, pour ne jamais
+// oublier qu'on est en /godmode ou /auto (U09).
+func (a *Agent) promptLabel() string {
+	label := a.model
+	var m []string
+	if a.godmode {
+		m = append(m, "GOD")
+	} else if a.autoApprove {
+		m = append(m, "AUTO")
+	}
+	for _, mode := range []struct {
+		nom string
+		on  bool
+	}{{"MANDO", a.speedrun}, {"BLADE", a.paranoid}, {"TERM", a.terminator},
+		{"MATRIX", a.bruteforce}, {"RABBIT", a.rabbithole}} {
+		if mode.on {
+			m = append(m, mode.nom)
+		}
+	}
+	if !a.thinking {
+		m = append(m, "nothink")
+	}
+	if len(m) > 0 {
+		label += "|" + strings.Join(m, ",")
+	}
+	return label
 }
 
 // printStatus affiche l'état réel de la session (U05) : sans ça, l'utilisateur
@@ -1781,7 +1893,13 @@ func (a *Agent) handleCommand(in string) {
 		a.printStatus()
 	case "/model":
 		if len(p) > 1 {
-			a.model = p[1]
+			nouveau := p[1]
+			if validModelName(nouveau) {
+				a.model = nouveau
+			} else {
+				fmt.Printf("Modèle inconnu : %s (gardé %s). Attendu : deepseek-… ou un identifiant contenant '/'.\n",
+					sanitizeTerm(nouveau), a.model)
+			}
 		}
 		fmt.Println("Modèle:", a.model)
 	case "/think":

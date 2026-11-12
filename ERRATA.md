@@ -211,6 +211,17 @@ fichier de session ; `saveSession` écrit de façon atomique et signale ses éch
 
 **Verrou.** `TestClearSession`, `TestWriteFileAtomic`.
 
+### ERRATA-019 — Scripts de test ancrés sur `~/ds-agent`, nettoyage Windows inopérant 🟡
+
+**Symptôme.** `tests/context.sh` et `tests/crash.sh` faisaient `cd ~/ds-agent` : inutilisables
+après un clone ailleurs. `clean.cmd` supprimait `%TEMP%\ds-agent-sessions`, dossier que
+l'agent n'utilise pas.
+
+**Correction.** `cd "$(dirname "$0")/.."` dans tous les scripts, `clean.sh` ajouté,
+`clean.cmd` aligné sur `%APPDATA%\ds-agent` (sessions + audit).
+
+**Verrou.** `bash -n tests/*.sh clean.sh` + exécution du banc.
+
 ---
 
 ## 2. Défauts ouverts

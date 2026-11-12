@@ -16,6 +16,7 @@ Docs de référence : [ARCHITECTURE.md](ARCHITECTURE.md), [ERRATA.md](ERRATA.md)
 
 ```bash
 go build -o ds-agent .              # build
+go build -ldflags "-X main.version=x.y.z" -o ds-agent .   # build versionné
 go test ./...                       # tests unitaires (racine, 6 tests)
 gofmt -l -w . && go vet ./...        # format + analyse
 ( cd audit_api && make )            # fmt + vet + test + build du sous-projet

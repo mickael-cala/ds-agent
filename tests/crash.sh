@@ -4,7 +4,7 @@
 
 # Crash-test ciblé : borne de boucle, sortie monstrueuse, interruption (SIGINT).
 set -u
-cd ~/ds-agent || exit 1
+cd "$(dirname "$0")/.." || exit 1
 OUT="${TMPDIR:-/tmp}"; PORT=8789
 go build -o "$OUT/paranoid" ./tools/paranoid || exit 1
 go build -o "$OUT/ds-agent-crash" . || exit 1

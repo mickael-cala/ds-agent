@@ -18,8 +18,10 @@ Règles du jeu :
 | 1 | Arrêter de mentir à l'opérateur | 5 | ✅ fait | `2cf99df` |
 | 2 | Frontières de confiance | 5 | ✅ fait | `5c1b46e` |
 | 3 | Exploitation & traçabilité | 5 | ✅ fait | `5b713f3` |
-| 4 | Confort & pilotage | 5 | ⬜ à faire | — |
+| 4 | Confort & pilotage | 5 | ✅ fait | `082b8eb` |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
+
+**Bilan : 20/20 correctifs livrés**, 36 tests, 16 scénarios hostiles, documentation à jour.
 
 ---
 
@@ -62,11 +64,11 @@ Objectif : un process enfant, un fichier sensible ou un fichier de config ne doi
 
 | # | Item | Réf. | Test / preuve | Statut |
 |---|---|---|---|---|
-| 4.1 | Détection TTY / `NO_COLOR` / `--no-spinner` | U06 | manuel | ⬜ |
-| 4.2 | Flags `--version`, `--dir`, `--model`, `--auto` + version injectée en ldflags | D13 | `TestParseFlags` | ⬜ |
-| 4.3 | Budget : schéma des outils compté + tri déterministe des serveurs MCP | D07, D08 | `TestTokenBudgetAvecOutils` | ⬜ |
-| 4.4 | Scripts de test portables + `clean.sh` + `clean.cmd` corrigé | D10, D11 | exécution des scripts | ⬜ |
-| 4.5 | Indicateur de modes dans l'invite + validation de `/model` | U09, U14 | manuel | ⬜ |
+| 4.1 | Détection TTY / `NO_COLOR` / `--no-spinner` | U06 | manuel | ✅ |
+| 4.2 | Flags `--version`, `--dir`, `--model`, `--auto` + version injectée en ldflags | D13 | `TestParseFlags` | ✅ |
+| 4.3 | Budget : schéma des outils compté + tri déterministe des serveurs MCP | D07, D08 | `TestTokenBudgetAvecOutils` | ✅ |
+| 4.4 | Scripts de test portables + `clean.sh` + `clean.cmd` corrigé | D10, D11 | exécution des scripts | ✅ |
+| 4.5 | Indicateur de modes dans l'invite + validation de `/model` | U09, U14 | manuel | ✅ |
 
 ## Réserve (non planifié)
 

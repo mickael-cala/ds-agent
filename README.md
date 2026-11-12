@@ -97,6 +97,7 @@ Ou via le script fourni (build + run) :
 ```bash
 export DEEPSEEK_API_KEY=...      # obligatoire, jamais en dur dans le dépôt
 ./build_and_run.sh               # Unix
+./clean.sh                       # nettoie binaires, sessions et journal d'audit
 build_and_run.cmd                # Windows
 ```
 
@@ -123,8 +124,19 @@ ne déplace que la racine du serveur MCP.
 ## Utilisation
 
 ```bash
-./ds-agent            # REPL dans le répertoire courant
+./ds-agent                     # REPL dans le répertoire courant
+./ds-agent --version           # version (injectée par ldflags)
+./ds-agent --dir ~/projet      # autre répertoire de travail
+./ds-agent --model deepseek-reasoner --auto --no-spinner
 ```
+
+| Drapeau | Effet |
+|---|---|
+| `--version` | affiche la version et quitte |
+| `--dir <chemin>` | répertoire de travail (défaut : courant) |
+| `--model <nom>` | modèle initial (`deepseek-…` ou `fournisseur/modèle`) |
+| `--auto` | auto-approbation (aucune confirmation) |
+| `--no-spinner` | désactive l'animation (automatique hors TTY) |
 
 Commandes du REPL :
 
@@ -245,6 +257,7 @@ Le sous-projet [`audit_api/`](audit_api/README.md) est une micro-API Go 1.22
 ├── mcp.json.example        # modèle de configuration MCP (mcp.json est ignoré)
 ├── .env.example            # modèle de variables d'environnement
 ├── build_and_run.sh/.cmd   # build + lancement
+├── clean.sh / clean.cmd    # nettoyage (binaires, sessions, audit)
 ├── tools/paranoid/         # faux backend DeepSeek (banc d'essai)
 ├── tests/                  # scénarios shell + PARANOID.md (résultats)
 ├── audit_api/              # micro-API Go (cible de test)

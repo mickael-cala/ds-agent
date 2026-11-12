@@ -125,7 +125,7 @@ Un échec de sauvegarde de session est indétectable : l'utilisateur perd son co
 message. **Correctif** : au minimum un avertissement sur stderr en cas d'échec de sauvegarde ;
 pour git, distinguer « pas un dépôt » (silence) de « commit refusé » (avertir).
 
-### D07 — Le budget oublie les outils 🟡
+### D07 — Le budget oublie les outils 🟡 — ✅ corrigé (sprint 4)
 `tokenBudget` (`982-991`) ne compte que les messages. Or chaque requête embarque le schéma
 JSON des 6 outils natifs **plus** ceux des serveurs MCP (`getTools`, `622-646`), soit
 souvent 1 000 à 2 000 tokens non budgétés. Avec `DEEPSEEK_CONTEXT_TOKENS=60000` la marge
@@ -133,7 +133,7 @@ absorbe ; avec 8 000 elle ne suffit pas → `400 context_length_exceeded` malgr�
 compaction « correcte ». **Correctif** : soustraire `estTokens(json(tools))` du budget, et
 plafonner le nombre d'outils MCP injectés.
 
-### D08 — Ordre des serveurs MCP non déterministe 🟡
+### D08 — Ordre des serveurs MCP non déterministe 🟡 — ✅ corrigé (sprint 4)
 `initMCPServers` itère une `map[string]MCPConfig` (`357-370`) : l'ordre des outils dans le
 prompt change à chaque lancement. Effet : comportements non reproductibles, cache de prompt
 inefficace, tests instables (le banc `paranoid` trie déjà ses clés, preuve que le besoin est connu).
@@ -145,13 +145,13 @@ les tours suivants. Plusieurs API de raisonnement rejettent ce champ en entrée 
 **Correctif** : le conserver pour l'affichage, mais le vider sur une copie avant l'envoi
 (ou le taguer `json:"-"` + champ séparé non sérialisé).
 
-### D10 — Bancs de test non portables 🟡
+### D10 — Bancs de test non portables 🟡 — ✅ corrigé (sprint 4)
 `tests/context.sh:7` et `tests/crash.sh:7` : `cd ~/ds-agent || exit 1`. Le dépôt cloné
 ailleurs ne teste rien (et sort en erreur, ce qui est au moins honnête). `tests/paranoid.sh:7`
 fait déjà bien : `cd "$(dirname "$0")/.."`.
 **Correctif** : aligner les trois scripts, et utiliser `go build -o "$OUT"` avec `$OUT` sous `$TMPDIR`.
 
-### D11 — `clean.cmd` nettoie un dossier qui n'existe pas 🟡
+### D11 — `clean.cmd` nettoie un dossier qui n'existe pas 🟡 — ✅ corrigé (sprint 4)
 `clean.cmd:8` : `SESSIONS_DIR=%TEMP%\ds-agent-sessions`, alors que l'agent écrit dans
 `%TEMP%\ds-sessions` (`main.go:1089-1091`). Résultat : l'utilisateur Windows croit avoir
 purgé son historique ; il n'a rien purgé. **Correctif** : une seule constante, documentée
@@ -163,7 +163,7 @@ dans le README, et suppression côté Unix (`clean.sh` manquant).
 **Correctif** : `go test -race`, tests de `safePath` (cas `..`, symlink sortant, symlink
 interne), et test de `approve` avec un `bufio.Scanner` sur `strings.NewReader("y\n")`.
 
-### D13 — Binaire anonyme, non pilotable 🔵
+### D13 — Binaire anonyme, non pilotable 🔵 — ✅ corrigé (sprint 4)
 Aucune constante de version, aucun `flag.Parse`, pas de `--help`. Impossible de savoir
 quelle build tourne en production, impossible de scripter un one-shot.
 **Correctif** : `var version = "dev"` + `-ldflags "-X main.version=…"`, et 4 flags
@@ -366,7 +366,7 @@ thinking on/off, modes actifs, budget restant, nombre d'outils MCP, session repr
 qui est **actif**, seulement ce qui existe.
 **Correctif** : `/status` + indicateur compact dans le prompt (`[chat|think|🦄🐇|12 outils]`).
 
-### U06 — Aucune détection de TTY ni de couleur 🟡
+### U06 — Aucune détection de TTY ni de couleur 🟡 — ✅ corrigé (sprint 4)
 `startSpinner` (`1173-1193`) écrit des séquences ANSI inconditionnellement ; dans un pipe,
 un `tmux capture-pane`, un log CI ou `TERM=dumb`, on récupère des `\r\033[K` et des
 spinners figés. `NO_COLOR` n'est pas respecté.
@@ -386,7 +386,7 @@ il devrait être optionnel.
 **Correctif** : `--plain` supprime emojis et directives de personnalité du prompt ;
 garder les emojis en sortie uniquement si le terminal le supporte.
 
-### U09 — Modes invisibles et cumulables sans avertissement 🟡
+### U09 — Modes invisibles et cumulables sans avertissement 🟡 — ✅ corrigé (sprint 4)
 `/godmode` et `/auto` suppriment toutes les confirmations, mais rien dans l'invite ne le
 rappelle après coup (on voit seulement une ligne au moment du toggle, `1240-1255`). Un
 utilisateur qui a activé `/godmode` il y a vingt minutes peut l'avoir oublié.
@@ -419,7 +419,7 @@ endroit pour les chaînes.
 correction. Pour un agent « terminal-first », c'est l'ergonomie d'un `cat`, pas d'un shell.
 **Correctif** : `peterh/liner` ou `chzyer/readline` (mode non-TTY de secours conservé).
 
-### U14 — `/model` sans garde-fou 🟡
+### U14 — `/model` sans garde-fou 🟡 — ✅ corrigé (sprint 4)
 `/model nimportequoi` est accepté (`1218-1222`) ; l'erreur n'arrive qu'au tour suivant,
 sous forme de 400. Aucune liste, aucune validation, aucun retour arrière automatique.
 **Correctif** : valider via un `/v1/models` (si disponible) ou au premier appel, et revenir

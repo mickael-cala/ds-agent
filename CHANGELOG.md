@@ -67,6 +67,20 @@ Correctifs issus de [AUDIT.md](AUDIT.md), suivis dans [PLAN_ACTION.md](PLAN_ACTI
   `DEEPSEEK_MAX_TOKENS` (dépense estimée cumulée, 0 = illimité) — un `/godmode` + `/matrix`
   ne peut plus tourner sans limite (C12).
 
+### Ajouté / corrigé — sprint 4 (« confort & pilotage »)
+
+- **Drapeaux CLI** : `--version` (version injectable par ldflags), `--dir`, `--model`
+  (validé), `--auto`, `--no-spinner` (D13).
+- **Invite lisible** : `[deepseek-chat|GOD,RABBIT]` — les modes actifs ne s'oublient plus (U09).
+- **`/model` validé** : identifiant `deepseek-…` ou qualifié (`fournisseur/modèle`), sinon
+  refus immédiat au lieu d'un HTTP 400 au tour suivant (U14).
+- **Animation conditionnelle** : désactivée si stdout n'est pas un terminal (pipes, CI, logs),
+  plus d'artefacts `\r\033[K` (U06).
+- **Budget exact** : le schéma JSON des outils est déduit du budget de contexte (D07).
+- **Serveurs MCP triés** : ordre déterministe des outils injectés (D08).
+- **Scripts portables** : `tests/context.sh` et `tests/crash.sh` repartent du dépôt,
+  `clean.sh` ajouté, `clean.cmd` pointe sur `%APPDATA%\ds-agent` (ERRATA-019, D10/D11).
+
 ### Tests
 
 - +6 tests (sprint 1) : `TestSanitizeTerm`, `TestDiffHunk`, `TestDiffHunkNouveauFichier`,
@@ -74,7 +88,9 @@ Correctifs issus de [AUDIT.md](AUDIT.md), suivis dans [PLAN_ACTION.md](PLAN_ACTI
 - +14 tests (sprint 2) : environnement enfant, caviardage, chemins sensibles/protégés,
   confirmations, écriture atomique, sessions.
 - +6 tests (sprint 3) : audit JSONL, timeout/groupe de processus, `/clear`, `/status`,
-  plafond d'itérations. Total : **31 tests**.
+  plafond d'itérations.
+- +5 tests (sprint 4) : drapeaux CLI, invite, validation de `/model`, budget avec outils.
+  Total : **36 tests**.
 
 ## [0.1.0] — 2026-11-12
 

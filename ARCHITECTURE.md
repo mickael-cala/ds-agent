@@ -43,14 +43,14 @@ Le fichier est volontairement monolithique mais découpé en 10 sections numéro
 | 1 | Configuration & constantes | `apiBase` (`DEEPSEEK_API_BASE`), `maxToolOut` (60 Ko), `maxAttempts` (4), `maxAPIBody` (32 Mo) |
 | 2 | Types & structures | `Message`, `ToolCall`, `ToolFunction`, `Tool`, `ChatRequest/Response`, `MCPConfig` |
 | 3 | Agent & modes | struct `Agent`, `getSystemPrompt()` (injection des personnalités), `defaultModel()`, `envInt()` |
-| 4 | `main` & protocole EMP | chargement de session, init MCP, capture `SIGINT` (soft/hard kill), boucle REPL, rollback d'historique |
+| 4 | `main` & protocole EMP | `parseOptions` (flags), chargement de session, init MCP, capture `SIGINT` (soft/hard kill), boucle REPL, rollback d'historique |
 | 5 | Serveurs MCP | `initMCPServers`, `closeMCPServers` — stdio, `Initialize`, `ListTools`, renommage `change_root` → `mcp_change_root` |
 | 6 | Boucle cognitive & LLM | `runLoop` (30/999 itérations), `callChat`, `chatOnce` (retries), `salvageJSON`, `snippet` |
 | 7 | Exécution des outils | `getTools`, `executeTool` (dispatch), `toolMCPSend`, `toolReadFile/WriteFile/EditFile/Bash` |
 | 8 | Natifs web | `toolWebSearch`, `toolWebFetch`, `postDeepSeekTool` |
 | 9 | Sécurité & sessions | `safePath`, `gitCheckpoint`, `approve`/`Prompter`, budget (`estTokens`, `tokenBudget`), `compactHistory`, `load/saveSession` |
 | 9.1 | Frontières de confiance | `childEnv`, `collectSecrets`/`redact`, `isSensitivePath`, `protectedWriteReason`, `writeFileAtomic`, `secureMkdirAll` |
-| — | Traçabilité | `audit.go` (JSONL append-only), `printStatus` (`/status`) |
+| — | Traçabilité | `audit.go` (JSONL append-only), `printStatus` (`/status`), `promptLabel` (modes visibles) |
 | 10 | Commandes & spinner | `startSpinner`/`stopSpinner`/`pauseSpinner`, `handleCommand` (`/help`, modes du chaos) |
 | — | Affichage sûr | `sanitizeTerm` (C0/C1/`ESC`), `diffHunk`/`printDiff` (aperçu avant écriture) |
 

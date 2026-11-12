@@ -4,6 +4,7 @@
 package main
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -13,8 +14,13 @@ func gros(n int, c string) string { return strings.Repeat(c, n) }
 
 func TestTokenBudget(t *testing.T) {
 	a := &Agent{}
-	if got := a.tokenBudget(); got != defaultContextTokens-reserveOutputTokens {
-		t.Fatalf("budget par défaut = %d", got)
+	// Le schéma des outils natifs est envoyé à chaque tour : il est déduit du budget.
+	var outils int
+	if raw, err := json.Marshal(a.getTools()); err == nil {
+		outils = estTokens(string(raw))
+	}
+	if got := a.tokenBudget(); got != defaultContextTokens-reserveOutputTokens-outils {
+		t.Fatalf("budget par défaut = %d (outils %d)", got, outils)
 	}
 	a.contextLimit = 12000
 	if got := a.tokenBudget(); got != 4000 {

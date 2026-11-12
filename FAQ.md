@@ -41,6 +41,14 @@ Oui, c'est la plateforme de développement (arm64). `pkg install golang git`, pu
 
 ## Utilisation
 
+**Quels sont les drapeaux disponibles ?**
+`--version`, `--dir <chemin>`, `--model <nom>`, `--auto`, `--no-spinner`. L'animation est
+coupée automatiquement quand la sortie n'est pas un terminal.
+
+**Comment tout nettoyer ?**
+`./clean.sh` (ou `clean.cmd` sous Windows) supprime le binaire, les sessions et le journal
+d'audit — aucun fichier source.
+
 **Comment changer de modèle en cours de session ?**
 `/model deepseek-reasoner` (ou tout identifiant valide de l'API).
 

@@ -4,7 +4,7 @@
 
 # Compaction de contexte : A/B sur un backend qui refuse au-delà de 300 000 octets.
 set -u
-cd ~/ds-agent || exit 1
+cd "$(dirname "$0")/.." || exit 1
 OUT="${TMPDIR:-/tmp}"; PORT=8792
 go build -o "$OUT/paranoid" ./tools/paranoid || exit 1
 go build -o "$OUT/ds-agent-ctx" . || exit 1
