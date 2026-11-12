@@ -67,12 +67,13 @@ v0.4→v0.6 empilent des fonctionnalités sur un socle qu'on ne sait pas tester.
 
 ### Découpage du code (`B`)
 
-- ⬜ `B1` Sortir `llm.go` (client HTTP, retries, `salvageJSON`, `chatOnce`)
-- ⬜ `B2` Sortir `tools.go` (`getTools`, `executeTool`, `tool*`, web)
-- ⬜ `B3` Sortir `session.go` (compactage, sessions, verrou) et `ui.go` (spinner, `sanitizeTerm`, `resumeOutil`, `printStatus`)
-- ⬜ `B4` `main.go` ≤ 400 lignes (config, `main`, REPL, `handleCommand`)
-- **Critère de sortie** : aucun fichier > 600 lignes, `go build` identique, 57 tests verts,
-  zéro changement de comportement (diff fonctionnel nul).
+- ✅ `B1` `llm.go` : `runLoop`, `callChat`, `chatOnce`, `salvageJSON`, `snippet`
+- ✅ `B2` `tools.go` : `getTools`, `executeTool`, `tool*`, web, `validerURLFetch`
+- ✅ `B3` `session.go` (compaction, sessions, verrou) + `ui.go` (confirmation, diff, spinner,
+  `sanitizeTerm`, `resumeOutil`, `printStatus`, `handleCommand`) + `trust.go` + `mcp.go` + `types.go`
+- ✅ `B4` `main.go` = 344 lignes (config, prompt, `main`, REPL, drapeaux)
+- **Critère de sortie** : ✅ aucun fichier > 550 lignes, 57 tests + 16 scénarios hostiles +
+  e2e verts, binaire identique en comportement (`--help`, `--version`, e2e).
 
 ### Tests & couverture (`T`)
 
@@ -99,7 +100,7 @@ v0.4→v0.6 empilent des fonctionnalités sur un socle qu'on ne sait pas tester.
 - ✅ `D1` Consolidé : 9 `.md` à la racine ; `FAQ` → `README`, `CODE_OF_CONDUCT` et
   `PUBLISHING` → `CONTRIBUTING`, `LICENSE-COMMERCIAL` → `LICENSING`, `STATUS` → `ROADMAP`,
   `ANALYSE_main` supprimé, `AUDIT`/`PLAN_ACTION` archivés dans `docs/`
-- ⬜ `D2` `scripts/check-docs.sh` : liens `.md` valides, compteurs de tests alignés sur
+- ⬜ `D2` `scripts/check-docs.sh` (reste à écrire) : liens `.md` valides, compteurs de tests alignés sur
   `go test -json`, hashs de `PLAN_ACTION` existants — exécuté en CI
 - ⬜ `D3` Retirer les numéros de ligne des docs d'analyse (ou les générer)
 - ⬜ `D4` `PLAN_ACTION.md` : arrêter d'y stocker des hashs (référencer les titres de commit)

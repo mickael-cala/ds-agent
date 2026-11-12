@@ -6,6 +6,13 @@ publié sous forme de release binaire : les versions ci-dessous décrivent l'ét
 
 ## [Non publié]
 
+### Modifié — `main.go` découpé (v0.3, B1–B4)
+
+- `main.go` : 2 230 → **344 lignes**. Nouveaux fichiers : `types.go`, `llm.go`, `tools.go`,
+  `trust.go`, `session.go`, `ui.go`, `mcp.go`. Aucun fichier > 550 lignes.
+- Comportement inchangé : 57 tests, 16 scénarios hostiles, e2e 2/2, `--help`/`--version`
+  identiques, binaire de même taille à 1 % près.
+
 ### Modifié — consolidation documentaire
 
 - 16 fichiers `.md` à la racine → **9** : `FAQ` fusionnée dans `README`, `CODE_OF_CONDUCT`

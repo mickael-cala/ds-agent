@@ -28,20 +28,27 @@ fichiers locaux (`~/.config/ds-agent/` : sessions + journal d'audit).
 
 ## Fichiers
 
-| Fichier | Rôle |
-|---|---|
-| `main.go` | constantes, types API, `Agent`, prompt système, `main`, REPL, MCP, commandes |
-| `sandbox.go` | `commandWithSandbox` (bwrap), `motDetecte` (commandes destructrices) |
-| `audit.go` | journal JSONL append-only (`AuditEntry`, `stateDir`) |
-| `proc_unix.go` / `proc_windows.go` | groupe de processus (timeout bash) et `flock` |
+| Fichier | Lignes | Rôle |
+|---|---|---|
+| `main.go` | ~340 | constantes d'entrée, prompt système, `main`, REPL, drapeaux, `usage` |
+| `types.go` | ~180 | types API DeepSeek, `Agent`, `MCPConfig`, constantes |
+| `llm.go` | ~250 | `runLoop`, `callChat`, `chatOnce` (retries), `salvageJSON`, `snippet` |
+| `tools.go` | ~410 | `getTools`, `executeTool`, `tool*`, outils web, `validerURLFetch` |
+| `trust.go` | ~200 | `safePath`, `childEnv`, secrets, denylists, normalisation de blocs |
+| `session.go` | ~280 | compaction, sessions, `verrouSession`, `writeFileAtomic` |
+| `ui.go` | ~540 | `approve`/`Prompter`, diff, spinner, `printStatus`, `handleCommand` |
+| `mcp.go` | ~90 | `commandeMCP`, `initMCPServers`, `closeMCPServers` |
+| `sandbox.go` | ~105 | `commandWithSandbox` (bwrap), `motDetecte` |
+| `audit.go` | ~75 | journal JSONL append-only |
+| `proc_unix.go` / `proc_windows.go` | ~30 | groupe de processus, `flock` |
 | `*.go` (tests) | `compact_test.go`, `safety_test.go`, `trust_test.go`, `sprint3…8_test.go` |
 | `tools/paranoid/` | faux backend DeepSeek : 16 scénarios hostiles (`[[429]]`, `[[html]]`…) |
 | `tests/*.sh` | banc hostile, e2e REPL, compaction A/B, coupures |
 | `audit_api/` | sous-projet : micro-API Go 1.22 (routage par méthode) + 4 tests |
 | `.github/workflows/ci.yml` | qualité (`-race`), anti-secret, e2e, build 3 OS, `govulncheck` |
 
-> Découpage en cours (roadmap v0.3, items `B1`–`B4`) : `llm.go`, `tools.go`, `session.go`,
-> `ui.go`, `trust.go` sortiront de `main.go`.
+> Découpage terminé (roadmap v0.3, `B1`–`B4`) : `main.go` est passé de 2 230 à ~340 lignes,
+> aucun fichier > 550 lignes, comportement inchangé (57 tests + banc hostile + e2e verts).
 
 ## Cycle d'un tour
 

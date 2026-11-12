@@ -23,12 +23,13 @@ Règles du jeu :
 | 6 | Renommage du module & publication | 5 | ✅ fait | `24917e5` |
 | 7 | Hygiène avant release | 5 | ✅ fait | « Sprint 7 » |
 | 8 | Finaliser v0.2 | 5 | ✅ fait | « Sprint 8 » |
+| 9 | Découpage v0.3 + consolidation docs | 5 | ✅ fait | « Sprint 9 » |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
 Les hashs de commits ne sont **pas** stockés ici (ils changent à chaque rebase) : se référer
 aux messages de commit. La suite du programme est dans [ROADMAP.md](../ROADMAP.md) (v0.3 → v1.0).
 
-**Bilan : 35/35 items livrés**, 57 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
+**Bilan : 40/40 items livrés**, 57 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
 CI multi-plateforme, documentation à jour.
 
 ---
@@ -120,6 +121,16 @@ Objectif : rendre les garde-fous **prouvables par une machine**, pas seulement p
 | 8.3 | `SIGTERM` : sauvegarde propre sans tool call en attente, fermeture MCP | ERRATA-102 | `TestSaveSessionPropre` | ✅ |
 | 8.4 | `--help` : aide complète (drapeaux, variables, commandes) | ERRATA-106 | `TestParseOptionsAide`, `TestUsage` | ✅ |
 | 8.5 | Verrou de session (`flock`), une seule instance par répertoire | ERRATA-107 | `TestVerrouSession` | ✅ |
+
+## Sprint 9 — « découpage v0.3 »
+
+| # | Item | Réf. | Preuve | Statut |
+|---|---|---|---|---|
+| 9.1 | `types.go`, `llm.go`, `tools.go` extraits de `main.go` | B1, B2 | `wc -l` : 181 / 247 / 412 | ✅ |
+| 9.2 | `trust.go`, `session.go`, `ui.go`, `mcp.go` extraits | B3 | 205 / 281 / 536 / 92 | ✅ |
+| 9.3 | `main.go` ≤ 400 lignes | B4 | 344 lignes | ✅ |
+| 9.4 | Comportement inchangé | — | 57 tests, 16 scénarios hostiles, e2e 2/2, `--version`, `--help` | ✅ |
+| 9.5 | Consolidation documentaire (9 `.md` à la racine) | D1 | suppression/fusion, liens vérifiés | ✅ |
 
 ## Réserve (non planifié)
 
