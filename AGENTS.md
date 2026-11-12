@@ -76,6 +76,14 @@ Ne jamais renommer « à la main » : `scripts/rename-module.sh <compte>` rééc
 `audit_api/go.mod`, les scripts de build et le badge du README, puis vérifie build, vet,
 tests (deux modules), e2e et banc hostile. Voir [PUBLISHING.md](PUBLISHING.md).
 
+## Où planifier
+
+[ROADMAP.md](ROADMAP.md) est le **plan de référence** (jalons, critères de sortie) ;
+[PLAN_ACTION.md](PLAN_ACTION.md) ne contient que le sprint en cours (5 items). Ne pas
+inventer d'item hors roadmap : ouvrir une issue qui modifie la roadmap d'abord.
+Ne pas ajouter de nouveau fichier `.md` à la racine : consolider dans les six sources de
+vérité (`README`, `ERRATA`, `ROADMAP`, `SECURITY`/`THREAT_MODEL`, `AGENTS`, `CHANGELOG`).
+
 ## Fichiers à ne pas modifier sans accord explicite
 
 | Fichier | Raison |

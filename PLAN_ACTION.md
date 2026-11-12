@@ -13,17 +13,20 @@ Règles du jeu :
 
 ## Avancement
 
-| Sprint | Thème | Items | Statut | Commit |
+| Sprint | Thème | Items | Statut | Réf. |
 |---|---|---|---|---|
-| 1 | Arrêter de mentir à l'opérateur | 5 | ✅ fait | `6abfbf9` |
-| 2 | Frontières de confiance | 5 | ✅ fait | `6a7d90f` |
-| 3 | Exploitation & traçabilité | 5 | ✅ fait | `3bf173e` |
-| 4 | Confort & pilotage | 5 | ✅ fait | `8e75ab9` |
-| 5 | Confiance vérifiable (hors plan initial) | 5 | ✅ fait | `2e69ceb` |
+| 1 | Arrêter de mentir à l'opérateur | 5 | ✅ fait | « Sprint 1 » |
+| 2 | Frontières de confiance | 5 | ✅ fait | « Sprint 2 » |
+| 3 | Exploitation & traçabilité | 5 | ✅ fait | « Sprint 3 » |
+| 4 | Confort & pilotage | 5 | ✅ fait | « Sprint 4 » |
+| 5 | Confiance vérifiable (hors plan initial) | 5 | ✅ fait | « Sprint 5 » |
 | 6 | Renommage du module & publication | 5 | ✅ fait | `24917e5` |
-| 7 | Hygiène avant release | 5 | ✅ fait | `08d29bc` |
-| 8 | Finaliser v0.2 | 5 | ✅ fait | `2c405b2` |
+| 7 | Hygiène avant release | 5 | ✅ fait | « Sprint 7 » |
+| 8 | Finaliser v0.2 | 5 | ✅ fait | « Sprint 8 » |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
+
+Les hashs de commits ne sont **pas** stockés ici (ils changent à chaque rebase) : se référer
+aux messages de commit. La suite du programme est dans [ROADMAP.md](ROADMAP.md) (v0.3 → v1.0).
 
 **Bilan : 35/35 items livrés**, 57 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
 CI multi-plateforme, documentation à jour.

@@ -8,6 +8,8 @@ Double lecture systématique : *pédagogique* (comment comprendre, comment repro
 - Preuves : numéros de ligne du fichier de référence, scénarios reproductibles.
 - Sévérité : 🔴 critique · 🟠 élevée · 🟡 moyenne · 🔵 faible / cosmétique.
 - Rien ici n'est un avis juridique ; les correctifs proposés restent à arbitrer.
+- Les **six constats de fond** (§0 et §2–4) sont planifiés dans [ROADMAP.md](ROADMAP.md),
+  avec une table de correspondance constat → jalon → items.
 - État : **✅ corrigé (sprint N)** = traité et testé, voir [PLAN_ACTION.md](PLAN_ACTION.md).
   Un constat non marqué est toujours ouvert.
 

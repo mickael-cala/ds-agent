@@ -28,7 +28,7 @@ Fichier principal : `main.go` (agent monolithique, ~1 200 lignes). Aucun framewo
 | [ARCHITECTURE.md](ARCHITECTURE.md) | schéma du flux, découpage de `main.go`, décisions de conception |
 | [STATUS.md](STATUS.md) | état de santé, plateformes, dette technique, vérifications |
 | [AUDIT.md](AUDIT.md) | audit pédagogique & paranoïaque : dev, cyber, UI/UX, scénarios d'attaque, plan d'action |
-| [ROADMAP.md](ROADMAP.md) | ce qui est fait, ce qui vient (v0.2 → v1.0), non-objectifs |
+| [ROADMAP.md](ROADMAP.md) | jalons v0.3 → v1.0 avec critères de sortie, risques, non-objectifs |
 | [ERRATA.md](ERRATA.md) | bugs corrigés (avec test de non-régression) et défauts ouverts |
 | [PLAN_ACTION.md](PLAN_ACTION.md) | correctifs de l'audit, en sprints de 5, avec statuts |
 | [PUBLISHING.md](PUBLISHING.md) | renommage du module, authentification, push et contrôles |

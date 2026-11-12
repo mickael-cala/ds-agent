@@ -1,6 +1,6 @@
 # STATUS
 
-État de santé du projet, vérifié le **2026-11-12** sur `android/arm64` (Termux), Go 1.27.3.
+État de santé du projet, vérifié le **2026-11-12** (v0.2.0 publiée ; prochain jalon : v0.3 « socle vérifiable ») sur `android/arm64` (Termux), Go 1.27.3.
 Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](ROADMAP.md)
 (ce qui vient) ni [ERRATA.md](ERRATA.md) (ce qui est cassé).
 
@@ -55,8 +55,8 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 
 | # | Sujet | Impact | Réf. |
 |---|---|---|---|
-| D1 | `main.go` monolithique (1 284 lignes, 7 sections numérotées) | lisibilité, tests difficiles | [ARCHITECTURE.md](ARCHITECTURE.md) |
-| D2 | Estimation de tokens `len/4` (pas de tokenizer) | compaction approximative | ERRATA-104 |
+| D1 | `main.go` monolithique (2 230 lignes, 76 fonctions) | lisibilité, tests difficiles | v0.3 `B1`–`B4` |
+| D2 | Estimation de tokens `len/4` (pas de tokenizer) | compaction approximative | ERRATA-104, v0.6 `X2` |
 | D4 | Sessions en clair dans `~/.config` (chemin corrigé, contenu non chiffré) | fuite de code/historique sur poste partagé | ERRATA-103 |
 | D5 | `audit_api/` est un module Go séparé | couvert par un job CI dédié | `.github/workflows/ci.yml` |
 | D9 | Journal d'audit non borné en taille | croissance lente de `audit.jsonl` | C09, ROADMAP v0.3 |

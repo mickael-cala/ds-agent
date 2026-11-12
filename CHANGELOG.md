@@ -8,8 +8,16 @@ publié sous forme de release binaire : les versions ci-dessous décrivent l'ét
 
 ### À venir
 
-Voir [ROADMAP.md](ROADMAP.md) — v0.3 : sandbox macOS/Windows, chiffrement des sessions,
-allowlist d'approbation par outil, tokenizer réel.
+Voir [ROADMAP.md](ROADMAP.md), qui traduit les six constats de l'audit externe en jalons :
+
+- **v0.3 « socle vérifiable »** : découpage de `main.go`, couverture ≥ 65 % + fuzzing,
+  `THREAT_MODEL.md`, consolidation et vérification automatique de la documentation.
+- **v0.4 « confinement réel »** : isolation réseau, chiffrement des sessions/audit,
+  sandbox macOS/Windows, détection d'injection, allowlist d'approbation par outil.
+- **v0.5 « fiabilité d'édition »** : patch ancré, relecture après écriture, boucle de tests,
+  `/undo`/`/diff`, checkpoints git propres.
+- **v0.6 « contexte »** : carte du dépôt, tokenizer réel, cache de lectures, `/context`.
+- **v1.0** : API figée, tests de contrat contre la vraie API, packaging, signature.
 
 ## [0.2.0] — 2026-11-12
 
