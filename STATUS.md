@@ -9,11 +9,12 @@ Ce fichier est mis à jour à chaque release ; il ne remplace pas [ROADMAP.md](R
 | Indicateur | État |
 |---|---|
 | Build | ✅ `go build .` sans warning |
-| Tests unitaires | ✅ 6/6 (`go test ./...`) |
+| Tests unitaires | ✅ 11/11 (`go test ./...`, après sprint 1) |
 | Sous-projet `audit_api` | ✅ 4/4 (`cd audit_api && go test ./...`) |
-| Banc hostile | ✅ 14 scénarios, 0 crash/blocage (`tests/paranoid.sh`) |
+| Banc hostile | ✅ 16 scénarios, 0 échec critique (`tests/paranoid.sh`) |
 | `gofmt` | ✅ aucun fichier à reformater |
 | `go vet` | ✅ propre |
+| `go test -race` | ⛔ non supporté sur `android/arm64` (à lancer en CI Linux) |
 | Secrets dans le dépôt | ✅ aucun (`.env`, `mcp.json` ignorés) |
 | Binaire | 8,4 Mio, `-ldflags="-s -w"`, aucune dépendance CGO |
 | Licence | ✅ double AGPL-3.0 / commercial (voir [LICENSING.md](LICENSING.md)) |

@@ -28,6 +28,7 @@ Fichier principal : `main.go` (agent monolithique, ~1 200 lignes). Aucun framewo
 | [AUDIT.md](AUDIT.md) | audit pédagogique & paranoïaque : dev, cyber, UI/UX, scénarios d'attaque, plan d'action |
 | [ROADMAP.md](ROADMAP.md) | ce qui est fait, ce qui vient (v0.2 → v1.0), non-objectifs |
 | [ERRATA.md](ERRATA.md) | bugs corrigés (avec test de non-régression) et défauts ouverts |
+| [PLAN_ACTION.md](PLAN_ACTION.md) | correctifs de l'audit, en 4 sprints de 5, avec statuts |
 | [FAQ.md](FAQ.md) | questions fréquentes (installation, coût, MCP, sécurité) |
 | [CHANGELOG.md](CHANGELOG.md) | historique des versions |
 | [AGENTS.md](AGENTS.md) | consignes pour les agents de codage IA travaillant sur le dépôt |
@@ -184,10 +185,14 @@ toute collision avec les outils natifs. Les erreurs de démarrage / `Initialize`
 
 - **Confirmation par défaut** : toute écriture, édition, commande shell ou outil MCP demande
   `[y/N]` — la touche Entrée seule vaut **non** (`/auto` et `/godmode` désactivent cette garde).
+- **Aperçu avant action** : un diff compact (`@@ ligne N @@`, `-`/`+`) est affiché avant
+  toute écriture ou édition de fichier.
+- **Assainissement terminal** : les chaînes d'origine distante (modèle, web, MCP, erreurs)
+  sont purgées de leurs séquences de contrôle avant affichage (`sanitizeTerm`).
 - **Anti-évasion** : `safePath` refuse `..` et les liens symboliques sortant du bac à sable.
 - **Checkpoints git** : commit automatique du fichier avant modification, rollback manuel facile.
 - **Rollback d'historique** : en cas d'erreur ou d'annulation, le dernier message utilisateur est retiré.
-- **Corps HTTP plafonné** à 32 Mo, sorties d'outils tronquées à 60 Ko.
+- **Corps HTTP plafonné** à 32 Mo (y compris les outils web), sorties d'outils tronquées à 60 Ko.
 - **Aucun secret dans le dépôt** : `.env`, `mcp.json` et les binaires sont ignorés (voir [SECURITY.md](SECURITY.md)).
 
 > ⚠️ Cet agent exécute des commandes shell. Lancez-le dans un répertoire de travail
@@ -234,6 +239,7 @@ Le sous-projet [`audit_api/`](audit_api/README.md) est une micro-API Go 1.22
 ├── AUDIT.md                # audit dev / cyber / UI-UX (pédagogique & paranoïaque)
 ├── ROADMAP.md              # feuille de route
 ├── ERRATA.md               # bugs corrigés / défauts connus
+├── PLAN_ACTION.md          # 4 sprints de correctifs (statuts)
 ├── AGENTS.md               # consignes pour agents IA
 ├── FAQ.md · CHANGELOG.md
 ├── SECURITY.md · CONTRIBUTING.md · CODE_OF_CONDUCT.md

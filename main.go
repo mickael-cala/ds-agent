@@ -161,6 +161,7 @@ type Agent struct {
 	sessionPath   string
 	spinnerChan   chan bool
 	spinnerActive bool
+	spinnerMsg    string
 
 	// Modes Fun / Dangereux
 	autoApprove bool
@@ -332,9 +333,11 @@ func main() {
 
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				fmt.Println("🕶️ [AGENT SMITH] Code effacé. Historique restauré à l'état précédent.")
+				fmt.Println("🕶️ [AGENT SMITH] Tâche annulée : conversation restaurée à l'état précédent.")
+				fmt.Println("   Les fichiers déjà écrits ne sont PAS restaurés — pour revenir en arrière :")
+				fmt.Println("   git log --oneline | grep Auto-checkpoint  puis  git revert <commit>")
 			} else {
-				fmt.Printf("\n[Erreur] %v\n", err)
+				fmt.Printf("\n[Erreur] %s\n", sanitizeTerm(err.Error()))
 			}
 			// Rollback propre en cas d'erreur ou d'interruption
 			for i := len(a.history) - 1; i >= 0; i-- {
@@ -345,7 +348,7 @@ func main() {
 			}
 			continue
 		}
-		fmt.Printf("\nDeepSeek > %s\n", reply)
+		fmt.Printf("\nDeepSeek > %s\n", sanitizeTerm(reply))
 		a.saveSession()
 	}
 }
@@ -473,14 +476,14 @@ func (a *Agent) runLoop(ctx context.Context) (string, error) {
 		}
 
 		for _, tc := range assistantMsg.ToolCalls {
-			fmt.Printf("\n⚙️  Appel : %s\n", tc.Function.Name)
+			fmt.Printf("\n⚙️  Appel : %s\n", sanitizeTerm(tc.Function.Name))
 			a.startSpinner("Exécution de l'outil...")
 			result, err := a.executeTool(ctx, tc)
 			a.stopSpinner()
 
 			if err != nil {
 				result = "Erreur outil : " + err.Error()
-				fmt.Println(result)
+				fmt.Println(sanitizeTerm(result))
 				consecutiveErrors++
 			} else {
 				consecutiveErrors = 0
@@ -523,7 +526,7 @@ func (a *Agent) callChat(ctx context.Context, messages []Message) (*ChatResponse
 			wait = time.Duration(400*(1<<uint(attempt-1))) * time.Millisecond
 		}
 		wait += time.Duration(rand.Int63n(int64(250 * time.Millisecond)))
-		fmt.Printf("\n[API] %v — nouvelle tentative %d/%d dans %s\n", err, attempt+1, maxAttempts, wait.Round(time.Millisecond))
+		fmt.Printf("\n[API] %s — nouvelle tentative %d/%d dans %s\n", sanitizeTerm(err.Error()), attempt+1, maxAttempts, wait.Round(time.Millisecond))
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
@@ -610,12 +613,111 @@ func salvageJSON(b []byte) (ChatResponse, bool) {
 }
 
 // snippet borne un extrait de corps pour les messages d'erreur.
+// Le contenu vient du réseau : il est assaini avant affichage (cf. sanitizeTerm).
 func snippet(b []byte, max int) string {
 	s := strings.ToValidUTF8(string(b), "?")
 	if len(s) > max {
 		s = s[:max] + "…"
 	}
-	return strings.TrimSpace(s)
+	return sanitizeTerm(strings.TrimSpace(s))
+}
+
+// sanitizeTerm neutralise les séquences de contrôle avant affichage.
+// Toute chaîne d'origine distante (modèle, page web, serveur MCP, corps d'erreur HTTP)
+// peut contenir \r, ESC ou d'autres C0 : sans filtre, elle peut effacer l'écran,
+// réécrire la ligne du prompt [y/N] ou changer le titre du terminal.
+func sanitizeTerm(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		switch {
+		case r == '\n' || r == '\t':
+			b.WriteRune(r)
+		case r == '\r':
+			b.WriteString(`\r`)
+		case r == 0x1b:
+			b.WriteString(`\x1b`)
+		case r < 0x20 || r == 0x7f || (r >= 0x80 && r <= 0x9f):
+			fmt.Fprintf(&b, `\x%02x`, r)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// splitLines découpe un texte en lignes sans produire de ligne fantôme :
+// un texte vide vaut 0 ligne, pas 1.
+func splitLines(s string) []string {
+	if s == "" {
+		return nil
+	}
+	return strings.Split(strings.TrimSuffix(strings.ReplaceAll(s, "\r\n", "\n"), "\n"), "\n")
+}
+
+// diffHunk produit un aperçu compact des différences : contexte immédiat,
+// lignes retirées puis ajoutées, borné à maxLines par bloc.
+// Ce n'est pas un diff de qualité git : c'est une preuve visuelle avant confirmation.
+func diffHunk(oldText, newText string, maxLines int) (string, int, int) {
+	o, n := splitLines(oldText), splitLines(newText)
+	p := 0
+	for p < len(o) && p < len(n) && o[p] == n[p] {
+		p++
+	}
+	s := 0
+	for s < len(o)-p && s < len(n)-p && o[len(o)-1-s] == n[len(n)-1-s] {
+		s++
+	}
+	removed, added := o[p:len(o)-s], n[p:len(n)-s]
+	if len(removed) == 0 && len(added) == 0 {
+		return "", 0, 0
+	}
+
+	var b strings.Builder
+	ctxStart := p - 2
+	if ctxStart < 0 {
+		ctxStart = 0
+	}
+	for _, l := range o[ctxStart:p] {
+		b.WriteString("  " + sanitizeTerm(l) + "\n")
+	}
+	fmt.Fprintf(&b, "@@ ligne %d @@\n", p+1)
+	for i, l := range removed {
+		if i >= maxLines {
+			fmt.Fprintf(&b, "- … %d ligne(s) supprimée(s) de plus\n", len(removed)-maxLines)
+			break
+		}
+		b.WriteString("- " + sanitizeTerm(l) + "\n")
+	}
+	for i, l := range added {
+		if i >= maxLines {
+			fmt.Fprintf(&b, "+ … %d ligne(s) ajoutée(s) de plus\n", len(added)-maxLines)
+			break
+		}
+		b.WriteString("+ " + sanitizeTerm(l) + "\n")
+	}
+	after := o[len(o)-s:]
+	for i, l := range after {
+		if i >= 2 {
+			break
+		}
+		b.WriteString("  " + sanitizeTerm(l) + "\n")
+	}
+	return b.String(), len(removed), len(added)
+}
+
+// printDiff affiche l'aperçu avant la question de confirmation.
+// Sans ça, « Appliquer la modification ? » demande un consentement sans preuve.
+func printDiff(name, oldText, newText string) {
+	h, removed, added := diffHunk(oldText, newText, 12)
+	kind := ""
+	if oldText == "" {
+		kind = " (nouveau fichier)"
+	}
+	fmt.Printf("\n[diff] %s%s : +%d −%d ligne(s)\n", sanitizeTerm(name), kind, added, removed)
+	if h != "" {
+		fmt.Print(h)
+	}
 }
 
 // ==========================================
@@ -787,8 +889,9 @@ func (a *Agent) toolWriteFile(args map[string]any) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Printf("\n[write] %s\n", p)
-	if !a.approve("Écrire ce fichier") {
+	old, _ := os.ReadFile(full) // absent = nouveau fichier
+	printDiff(p, string(old), c)
+	if !a.approve("Écrire " + p) {
 		return "Annulé", nil
 	}
 	a.gitCheckpoint(full)
@@ -821,12 +924,12 @@ func (a *Agent) toolEditFile(args map[string]any) (string, error) {
 	if !strings.Contains(string(data), s) {
 		return "Échec : search_block introuvable (indentation?).", nil
 	}
-	fmt.Printf("\n[edit] %s\n", p)
-	if !a.approve("Appliquer modification") {
+	newC := strings.Replace(string(data), s, r, 1)
+	printDiff(p, string(data), newC)
+	if !a.approve("Appliquer la modification") {
 		return "Annulé", nil
 	}
 	a.gitCheckpoint(full)
-	newC := strings.Replace(string(data), s, r, 1)
 	err = os.WriteFile(full, []byte(newC), 0644)
 	return "Modification appliquée.", err
 }
@@ -836,7 +939,7 @@ func (a *Agent) toolBash(ctx context.Context, args map[string]any) (string, erro
 	if err != nil {
 		return "", err
 	}
-	fmt.Printf("\n[bash] %s\n", c)
+	fmt.Printf("\n[bash] %s\n", sanitizeTerm(c))
 	if !a.approve("Exécuter") {
 		return "Annulé", nil
 	}
@@ -900,18 +1003,32 @@ func (a *Agent) toolWebFetch(ctx context.Context, args map[string]any) (string, 
 	})
 }
 
+// toolBodyLimit borne la lecture des réponses des outils web. Variable pour les tests.
+var toolBodyLimit int64 = maxAPIBody
+
 func (a *Agent) postDeepSeekTool(ctx context.Context, ep string, payload map[string]any, parser func([]byte) (string, error)) (string, error) {
-	body, _ := json.Marshal(payload)
-	req, _ := http.NewRequestWithContext(ctx, "POST", apiBase+ep, bytes.NewBuffer(body))
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("encodage requête web: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, "POST", apiBase+ep, bytes.NewBuffer(body))
+	if err != nil {
+		return "", fmt.Errorf("requête web invalide: %w", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+a.apiKey)
 
 	resp, err := a.http.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("réseau web: %w", err)
 	}
 	defer resp.Body.Close()
-	raw, _ := io.ReadAll(resp.Body)
+	// CORRIGÉ (D03) : même bornage que chatOnce. Un serveur qui renvoie 500 Mo
+	// ne doit pas pouvoir saturer la RAM par un chemin détourné.
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, toolBodyLimit))
+	if err != nil {
+		return "", fmt.Errorf("lecture réponse web interrompue: %w", err)
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		if !a.terminator && (resp.StatusCode == 504 || resp.StatusCode == 502) {
@@ -920,7 +1037,7 @@ func (a *Agent) postDeepSeekTool(ctx context.Context, ep string, payload map[str
 		if !a.terminator && resp.StatusCode == 404 {
 			return "Erreur 404 sur l'API Web. Passe à autre chose.", nil
 		}
-		return "", fmt.Errorf("API Web %d: %s", resp.StatusCode, string(raw))
+		return "", fmt.Errorf("API Web %d: %s", resp.StatusCode, snippet(raw, 400))
 	}
 	return parser(raw)
 }
@@ -959,8 +1076,13 @@ func (a *Agent) approve(action string) bool {
 	if a.godmode || a.autoApprove {
 		return true
 	}
-	fmt.Printf(">> %s ? [y/N] : ", action)
+	// L'animation ne doit jamais recouvrir la question : on la suspend le temps
+	// de la saisie, puis on la reprend (runLoop l'arrêtera définitivement).
+	a.pauseSpinner()
+	defer a.resumeSpinner()
+	fmt.Printf(">> %s ? [y/N] : ", sanitizeTerm(action))
 	if !a.scanner.Scan() {
+		fmt.Println("\n[refus] entrée fermée (stdin non interactif) : action refusée.")
 		return false
 	}
 	ans := strings.ToLower(strings.TrimSpace(a.scanner.Text()))
@@ -1171,9 +1293,8 @@ func (c *cappedBuffer) String() string {
 // ==========================================
 
 func (a *Agent) startSpinner(msg string) {
-	if a.spinnerActive {
-		a.stopSpinner()
-	}
+	a.haltSpinner()
+	a.spinnerMsg = msg
 	a.spinnerActive = true
 	go func() {
 		chars := []rune{'⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'}
@@ -1193,9 +1314,26 @@ func (a *Agent) startSpinner(msg string) {
 }
 
 func (a *Agent) stopSpinner() {
+	a.haltSpinner()
+	a.spinnerMsg = ""
+}
+
+// haltSpinner arrête l'animation sans oublier le message : on peut la reprendre.
+func (a *Agent) haltSpinner() {
 	if a.spinnerActive {
 		a.spinnerChan <- true
 		a.spinnerActive = false
+	}
+}
+
+// pauseSpinner est appelé avant toute interaction avec l'utilisateur : sans ça,
+// l'animation réécrit la ligne du prompt [y/N] toutes les 100 ms et l'utilisateur
+// valide une action qu'il ne voit plus.
+func (a *Agent) pauseSpinner() { a.haltSpinner() }
+
+func (a *Agent) resumeSpinner() {
+	if !a.spinnerActive && a.spinnerMsg != "" {
+		a.startSpinner(a.spinnerMsg)
 	}
 }
 

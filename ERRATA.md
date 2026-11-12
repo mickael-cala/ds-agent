@@ -120,6 +120,35 @@ chanceux.
 
 **Correction.** Tags explicites champ par champ.
 
+### ERRATA-012 — Le spinner masquait la question de confirmation 🔴
+
+**Symptôme.** `>> Exécuter ? [y/N] :` disparaissait sous l'animation : l'utilisateur
+répondait à une question dont il ne voyait plus ni le texte ni la commande.
+
+**Cause.** `startSpinner("Exécution de l'outil...")` encadrait `executeTool`, qui appelle
+`approve()` : la boucle d'animation réécrivait la ligne courante (`\r\033[K`) toutes les
+100 ms, puis `stopSpinner` effaçait la dernière trace.
+
+**Correction.** `approve()` suspend l'animation (`pauseSpinner`) avant d'afficher la
+question et la reprend après la réponse (`resumeSpinner`) ; `stopSpinner` oublie le message.
+
+**Verrou.** `TestSpinnerPauseResume`.
+
+### ERRATA-013 — Outils web : corps non borné et erreurs ignorées 🟠
+
+**Symptôme.** `local_web_search` / `local_web_fetch` pouvaient charger une réponse de
+plusieurs centaines de Mo en mémoire ; une erreur d'encodage ou de requête produisait un
+`panic` (valeur nulle déréférencée).
+
+**Cause.** `json.Marshal`, `http.NewRequestWithContext` et `io.ReadAll` étaient appelés
+sans vérifier leur erreur ; `ReadAll` n'était pas borné — la régression du correctif
+ERRATA-005, appliqué à `chatOnce` mais pas aux outils web.
+
+**Correction.** Erreurs vérifiées, lecture plafonnée à `maxAPIBody` (variable
+`toolBodyLimit` pour les tests), extrait d'erreur assaini via `snippet`.
+
+**Verrou.** `TestPostDeepSeekToolBorne`.
+
 ---
 
 ## 2. Défauts ouverts

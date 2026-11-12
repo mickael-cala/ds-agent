@@ -8,6 +8,8 @@ Double lecture systématique : *pédagogique* (comment comprendre, comment repro
 - Preuves : numéros de ligne du fichier de référence, scénarios reproductibles.
 - Sévérité : 🔴 critique · 🟠 élevée · 🟡 moyenne · 🔵 faible / cosmétique.
 - Rien ici n'est un avis juridique ; les correctifs proposés restent à arbitrer.
+- État : **✅ corrigé (sprint N)** = traité et testé, voir [PLAN_ACTION.md](PLAN_ACTION.md).
+  Un constat non marqué est toujours ouvert.
 
 ---
 
@@ -95,7 +97,7 @@ croit être protégé.
 **Correctif** : écrire dans `.<nom>.tmp` du même répertoire, `f.Sync()`, `os.Rename`,
 puis restaurer le mode d'origine (`info.Mode().Perm()`), et supprimer le temporaire en cas d'échec.
 
-### D03 — `postDeepSeekTool` ignore le bornage et les erreurs 🟠
+### D03 — `postDeepSeekTool` ignore le bornage et les erreurs 🟠 — ✅ corrigé (sprint 1)
 `main.go:903-929` : `json.Marshal` ignoré, `http.NewRequestWithContext` ignoré,
 `io.ReadAll(resp.Body)` **sans `LimitReader`** (914), `raw, _ :=` (914).
 C'est exactement la régression corrigée dans `chatOnce` (`552`) : la leçon n'a pas été
@@ -216,7 +218,7 @@ dans l'URL du remote, `~/.aws` si le bac à sable est déplacé).
 fichier), caviardage des valeurs ressemblant à des secrets dans le contenu d'outil, et
 `/redact` pour les cas particuliers.
 
-### C04 — Injection d'échappements ANSI/contrôle dans le terminal 🟠
+### C04 — Injection d'échappements ANSI/contrôle dans le terminal 🟠 — ✅ corrigé (sprint 1)
 Chemins d'impression non assainis :
 `[bash] %s` (`839`), `[write] %s` (`790`), `[edit] %s` (`824`), `[API] %v` (`526`),
 `snippet(raw, …)` (`610-620`, utilisé en `562-583`), `fmt.Println(result)` (`483`),
@@ -327,7 +329,7 @@ documentation « si vous avez collé une clé, révoquez-la ».
 
 ## 4. Volet UI/UX
 
-### U01 — Le spinner recouvre la confirmation 🔴 (le pire bug visible)
+### U01 — Le spinner recouvre la confirmation 🔴 (le pire bug visible) — ✅ corrigé (sprint 1)
 `main.go:477-479` : `startSpinner("Exécution de l'outil...")` encadre `executeTool`, qui
 appelle `approve()` (`958-970`) et affiche `>> Exécuter ? [y/N] :`. Le spinner réécrit la
 ligne courante (`\r\033[K`, `1186-1190`) toutes les 100 ms : **la question et la commande
@@ -336,7 +338,7 @@ disparaissent pendant que l'utilisateur répond**. Il valide donc à l'aveugle �
 **Correctif** : `a.stopSpinner()` avant toute interaction, redémarrer après ; ou un
 `prompter` qui suspend le spinner (design pattern « pause pendant saisie »).
 
-### U02 — Confirmation sans preuve 🟠
+### U02 — Confirmation sans preuve 🟠 — ✅ corrigé (sprint 1)
 « Écrire ce fichier » (`790`) et « Appliquer modification » (`824`) n'affichent ni le
 contenu, ni le diff, ni la taille. L'utilisateur doit faire confiance à un nom de fichier.
 **Correctif** : diff unifié coloré (3 lignes de contexte), compteur `+12 −3`, et `y` pour
@@ -349,7 +351,7 @@ qui a été écrit. C'est aussi un problème de sécurité (C09) : pas de trace,
 **Correctif** : une ligne de résumé par outil (`read main.go → 1 284 lignes`, `write → +18 −0`),
 et `/verbose` pour le contenu complet.
 
-### U04 — « Historique restauré » est faux 🟠
+### U04 — « Historique restauré » est faux 🟠 — ✅ corrigé (sprint 1)
 `main.go:330-333` annonce « Code effacé. Historique restauré à l'état précédent. » Seul
 l'**historique de conversation** est restauré ; les fichiers déjà écrits restent modifiés.
 L'utilisateur croit à un annulation globale.

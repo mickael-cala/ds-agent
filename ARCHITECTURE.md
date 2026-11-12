@@ -49,7 +49,8 @@ Le fichier est volontairement monolithique mais découpé en 10 sections numéro
 | 7 | Exécution des outils | `getTools`, `executeTool` (dispatch), `toolMCPSend`, `toolReadFile/WriteFile/EditFile/Bash` |
 | 8 | Natifs web | `toolWebSearch`, `toolWebFetch`, `postDeepSeekTool` |
 | 9 | Sécurité & sessions | `safePath`, `gitCheckpoint`, `approve`, budget (`estTokens`, `tokenBudget`), `compactHistory`, `load/saveSession` |
-| 10 | Commandes & spinner | `startSpinner`/`stopSpinner` (cappedBuffer), `handleCommand` (`/help`, modes du chaos) |
+| 10 | Commandes & spinner | `startSpinner`/`stopSpinner`/`pauseSpinner`, `handleCommand` (`/help`, modes du chaos) |
+| — | Affichage sûr | `sanitizeTerm` (C0/C1/`ESC`), `diffHunk`/`printDiff` (aperçu avant écriture) |
 
 ## Cycle d'un tour
 

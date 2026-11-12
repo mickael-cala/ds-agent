@@ -11,6 +11,29 @@ publié sous forme de release binaire : les versions ci-dessous décrivent l'ét
 Voir [ROADMAP.md](ROADMAP.md) — v0.2 : `SIGTERM`, flags CLI, verrou de session,
 `env`/`cwd` par serveur MCP, CI multi-plateforme.
 
+## [0.2.0-dev] — en cours
+
+Correctifs issus de [AUDIT.md](AUDIT.md), suivis dans [PLAN_ACTION.md](PLAN_ACTION.md).
+
+### Corrigé — sprint 1 (« arrêter de mentir à l'opérateur »)
+
+- Le spinner est suspendu pendant toute question de confirmation : la commande et le
+  `[y/N]` ne sont plus recouverts par l'animation (ERRATA-012, U01).
+- `sanitizeTerm` neutralise les séquences de contrôle (`\r`, `ESC`, `C0`, `C1`) sur toute
+  chaîne d'origine distante avant affichage : plus d'injection d'écran ou de réécriture du
+  prompt de confirmation (C04).
+- Aperçu de diff (`@@ ligne N @@`, blocs `-`/`+`, borné à 12 lignes) avant toute écriture
+  ou édition de fichier — le consentement devient éclairé (U02).
+- Message d'annulation corrigé : l'historique est restauré, **pas** les fichiers, avec la
+  marche à suivre pour revenir sur un checkpoint git (U04).
+- `postDeepSeekTool` : lecture bornée à 32 Mo, erreurs `Marshal`/`NewRequest`/`ReadAll`
+  vérifiées, extrait d'erreur assaini (ERRATA-013, D03).
+
+### Tests
+
+- +5 tests : `TestSanitizeTerm`, `TestDiffHunk`, `TestDiffHunkNouveauFichier`,
+  `TestDiffHunkTronque`, `TestSpinnerPauseResume`, `TestPostDeepSeekToolBorne`.
+
 ## [0.1.0] — 2026-11-12
 
 Premier instantané public du dépôt.
