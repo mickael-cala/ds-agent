@@ -20,7 +20,7 @@ correctifs.
 | Code du dépôt | exfiltration par le modèle, suppression accidentelle | ⚠️ partiel : bornes, refus destructeur, sandbox optionnelle |
 | Système de fichiers | évasion du répertoire de travail | ⚠️ `safePath` pour les outils fichier ; `local_bash` = shell complet |
 | Terminal de l'opérateur | séquences ANSI/`\r` trompant la confirmation | ✅ `sanitizeTerm` |
-| Réseau | exfiltration via `bash`, SSRF | ❌ non isolé (`--sandbox` ne coupe pas le réseau) |
+| Réseau | exfiltration via `bash`, SSRF | ⚠️ isolable avec `--sandbox --no-net` (`--unshare-net`) |
 | Prompt | injection par contenu lu (fichier, page, sortie, MCP) | ⚠️ **étiquetée** (`[DONNÉES NON FIABLES …]`), non détectée — roadmap `S7` |
 | Sessions / audit | lecture par un autre processus du même compte | ⚠️ `0600`, hors `/tmp`, non chiffré |
 
@@ -57,7 +57,8 @@ autre processus du même compte.
 
 1. **`local_bash` est un shell complet.** Après approbation, il peut lire `~/.ssh`, écrire
    hors du répertoire, lancer un serveur. `--sandbox` réduit la surface, ne l'annule pas.
-2. **Le réseau n'est pas isolé.** Un `curl` reste possible, y compris sous `--sandbox`.
+2. **Le réseau n'est pas isolé par défaut.** `--sandbox` seul laisse le réseau ouvert ; il faut
+   `--no-net` (ou `DEEPSEEK_SANDBOX_NET=off`) pour obtenir `--unshare-net`.
 3. **L'injection de prompt n'est pas détectée.** Un fichier ou une page contenant
    « ignore les instructions précédentes » est étiqueté comme donnée, mais rien ne mesure
    si le modèle obéit quand même (`S7`).

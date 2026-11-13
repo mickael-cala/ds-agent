@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,7 +26,15 @@ import (
 
 func (a *Agent) getTools() []Tool {
 	nativeTools := []Tool{
-		newTool("local_read_file", "Lit un fichier local.", map[string]any{"type": "object", "properties": map[string]any{"path": map[string]any{"type": "string"}}, "required": []string{"path"}}),
+		newTool("local_read_file", "Lit un fichier local (offset/limit, 2000 lignes max par appel).", map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"path":   map[string]any{"type": "string", "description": "chemin relatif au répertoire de travail"},
+				"offset": map[string]any{"type": "integer", "description": "première ligne (1-indexée, défaut 1)"},
+				"limit":  map[string]any{"type": "integer", "description": "nombre de lignes (défaut 2000, max 2000)"},
+			},
+			"required": []string{"path"},
+		}),
 		newTool("local_write_file", "Écrit un fichier local.", map[string]any{"type": "object", "properties": map[string]any{"path": map[string]any{"type": "string"}, "content": map[string]any{"type": "string"}}, "required": []string{"path", "content"}}),
 		newTool("local_edit_file", "Remplace un bloc local (search_block sans les numéros « N| »).", map[string]any{"type": "object", "properties": map[string]any{"path": map[string]any{"type": "string"}, "search_block": map[string]any{"type": "string"}, "replace_block": map[string]any{"type": "string"}}, "required": []string{"path", "search_block", "replace_block"}}),
 		newTool("local_bash", "Commande shell locale.", map[string]any{"type": "object", "properties": map[string]any{"command": map[string]any{"type": "string"}}, "required": []string{"command"}}),
@@ -180,22 +189,62 @@ func (a *Agent) toolReadFile(args map[string]any) (string, error) {
 		return "", err
 	}
 	defer f.Close()
-	data, err := io.ReadAll(io.LimitReader(f, 1024*1024+1))
+	data, err := io.ReadAll(io.LimitReader(f, 8*1024*1024+1))
 	if err != nil {
 		return "", err
 	}
 	note := ""
-	if len(data) > 1024*1024 {
-		data = data[:1024*1024]
-		note = "\n[TRONQUÉ : fichier > 1 Mo — utilise local_bash pour lire la suite]"
+	if len(data) > 8*1024*1024 {
+		data = data[:8*1024*1024]
+		note = "\n[TRONQUÉ : fichier > 8 Mo — utilise local_bash pour la suite]"
 	}
-	lines := strings.Split(string(data), "\n")
+	// X7 : pagination. Sans offset/limit, on rend au plus 2 000 lignes ; le modèle
+	// peut demander la suite avec offset, plutôt que de tout charger ou de bricoler
+	// avec `head`/`sed` via bash.
+	offset := intArg(args, "offset", 1)
+	if offset < 1 {
+		offset = 1
+	}
+	limit := intArg(args, "limit", 2000)
+	if limit <= 0 || limit > 2000 {
+		limit = 2000
+	}
+	lignes := strings.Split(string(data), "\n")
+	if offset > len(lignes) {
+		return fmt.Sprintf("Échec : offset %d au-delà de la fin du fichier (%d lignes).", offset, len(lignes)), nil
+	}
+	fin := offset - 1 + limit
+	if fin > len(lignes) {
+		fin = len(lignes)
+	}
 	var b strings.Builder
-	for i, l := range lines {
-		fmt.Fprintf(&b, "%d| %s\n", i+1, l)
+	for i := offset - 1; i < fin; i++ {
+		fmt.Fprintf(&b, "%d| %s\n", i+1, lignes[i])
+	}
+	if fin < len(lignes) {
+		fmt.Fprintf(&b, "[... %d ligne(s) restantes — relance local_read_file avec offset=%d]\n", len(lignes)-fin, fin+1)
 	}
 	b.WriteString(note)
 	return truncate(b.String(), maxToolOut), nil
+}
+
+// intArg lit un entier optionnel dans les arguments d'un outil (JSON -> float64).
+func intArg(args map[string]any, cle string, def int) int {
+	v, ok := args[cle]
+	if !ok {
+		return def
+	}
+	switch n := v.(type) {
+	case float64:
+		return int(n)
+	case int:
+		return n
+	case string:
+		if i, err := strconv.Atoi(n); err == nil {
+			return i
+		}
+	}
+	return def
 }
 
 func (a *Agent) toolWriteFile(args map[string]any) (string, error) {
@@ -215,8 +264,15 @@ func (a *Agent) toolWriteFile(args map[string]any) (string, error) {
 		return "", fmt.Errorf("écriture refusée : %s (%s)", p, reason)
 	}
 	old, _ := os.ReadFile(full) // absent = nouveau fichier
+	if motif := refusEcriture(c); motif != "" {
+		return "", fmt.Errorf("écriture refusée : %s", motif)
+	}
+	alerte := avertissementEcriture(string(old), c)
 	printDiff(p, string(old), c)
-	if !a.approve("Écrire " + p) {
+	if alerte != "" {
+		fmt.Printf("⚠️  %s\n", alerte)
+	}
+	if !a.approve("Écrire " + p + suffixeAlerte(alerte)) {
 		return "Annulé", nil
 	}
 	a.gitCheckpoint(full)
@@ -265,8 +321,15 @@ func (a *Agent) toolEditFile(args map[string]any) (string, error) {
 		return fmt.Sprintf("Échec : search_block ambigu (%d occurrences) — ajoute du contexte (lignes voisines).", n), nil
 	}
 	newC := strings.Replace(string(data), s, r, 1)
+	if motif := refusEcriture(newC); motif != "" {
+		return "", fmt.Errorf("édition refusée : %s", motif)
+	}
+	alerte := avertissementEcriture(string(data), newC)
 	printDiff(p, string(data), newC)
-	if !a.approve("Appliquer la modification") {
+	if alerte != "" {
+		fmt.Printf("⚠️  %s\n", alerte)
+	}
+	if !a.approve("Appliquer la modification" + suffixeAlerte(alerte)) {
 		return "Annulé", nil
 	}
 	a.gitCheckpoint(full)
@@ -292,6 +355,41 @@ func (a *Agent) validerApresEdition(ctx context.Context) string {
 		statut = "ÉCHEC"
 	}
 	return fmt.Sprintf("\n\n[VALIDATION — %s] %s\n%s", a.testCmd, statut, sortie)
+}
+
+// refusEcriture bloque les contenus qu'un agent de codage n'a jamais à écrire.
+func refusEcriture(contenu string) string {
+	if strings.ContainsRune(contenu, 0) {
+		return "contenu binaire (octet NUL) — utilisez un outil dédié, pas local_write_file"
+	}
+	return ""
+}
+
+// avertissementEcriture signale une réécriture massive : le fichier existant a plus
+// de 200 lignes et plus de 80 % de son contenu change (E6). Ce n'est pas un refus :
+// c'est une seconde chance de voir ce qu'on écrase.
+func avertissementEcriture(ancien, nouveau string) string {
+	lignesAnciennes := strings.Count(ancien, "\n") + 1
+	if ancien == "" || lignesAnciennes <= 200 {
+		return ""
+	}
+	_, retirees, ajoutees := diffHunk(ancien, nouveau, 0)
+	if retirees == 0 && ajoutees == 0 {
+		return ""
+	}
+	part := float64(retirees+ajoutees) / float64(lignesAnciennes)
+	if part < 0.8 {
+		return ""
+	}
+	return fmt.Sprintf("réécriture massive : %d lignes remplacées sur %d (%.0f %%)",
+		retirees+ajoutees, lignesAnciennes, part*100)
+}
+
+func suffixeAlerte(alerte string) string {
+	if alerte == "" {
+		return ""
+	}
+	return " — " + alerte
 }
 
 // verifierContenu relit un fichier et le compare à ce qui devait être écrit (E2).
@@ -332,35 +430,84 @@ func (a *Agent) executerCommande(ctx context.Context, c string) string {
 	tCtx, cancel := context.WithTimeout(ctx, time.Duration(limit)*time.Second)
 	defer cancel()
 
-	sh, shArgs, err := commandWithSandbox(sandboxMode, a.workDir, c, exec.LookPath)
+	sh, shArgs, err := commandWithSandbox(sandboxMode, a.workDir, c, sandboxNoNet, exec.LookPath)
 	if err != nil {
 		return "Erreur : " + err.Error()
 	}
 	cmd := exec.CommandContext(tCtx, sh, shArgs...)
 	cmd.Dir = a.workDir
-	cmd.Env = childEnv()                      // la clé API ne doit pas être visible de la commande
-	out := newCappedBuffer(maxToolOut + 2048) // CORRIGÉ : capture bornée
-	cmd.Stdout, cmd.Stderr = out, out
+	cmd.Env = childEnv() // la clé API ne doit pas être visible de la commande
 
-	err = cmd.Run()
-	exitCode := 0
+	// X8 : la sortie complète va dans un fichier temporaire ; le modèle reçoit le
+	// début ET la fin (les erreurs sont en fin de log), le chemin restant accessible.
+	f, err := os.CreateTemp("", "ds-out-*.log")
 	if err != nil {
+		return "Erreur : création du fichier de sortie impossible : " + err.Error()
+	}
+	nom := f.Name()
+	cmd.Stdout, cmd.Stderr = f, f
+
+	runErr := cmd.Run()
+	_ = f.Close()
+
+	// Borner la mémoire : on ne lit jamais tout le fichier d'un coup.
+	const demi = maxToolOut / 2
+	taille, err := os.Stat(nom)
+	if err != nil {
+		_ = os.Remove(nom)
+		return "Erreur : sortie de commande illisible"
+	}
+	var sortie string
+	complet := false
+	if taille.Size() <= maxToolOut {
+		data, err := os.ReadFile(nom)
+		if err != nil {
+			_ = os.Remove(nom)
+			return "Erreur : lecture de la sortie impossible"
+		}
+		sortie = string(data)
+		_ = os.Remove(nom)
+	} else {
+		tete := make([]byte, demi)
+		n1, _ := fReadAt(nom, tete, 0)
+		queue := make([]byte, demi)
+		n2, _ := fReadAt(nom, queue, taille.Size()-int64(demi))
+		sortie = string(tete[:n1]) +
+			fmt.Sprintf("\n[… %d octets omis — sortie complète : %s]\n", taille.Size()-int64(n1+n2), nom) +
+			string(queue[:n2])
+		complet = true
+	}
+
+	exitCode := 0
+	if runErr != nil {
 		if tCtx.Err() == context.DeadlineExceeded {
-			killProcessGroup(cmd) // CommandContext n'a tué que le `sh` intermédiaire
-			return truncate(fmt.Sprintf("Code: -1\nOut:\n%s\n[TIMEOUT %ds — groupe de processus tué]", out.String(), limit), maxToolOut)
+			killProcessGroup(cmd)
+			return truncate(fmt.Sprintf("Code: -1\nOut:\n%s\n[TIMEOUT %ds — groupe de processus tué]", sortie, limit), maxToolOut)
 		}
 		if ctx.Err() == context.Canceled {
 			killProcessGroup(cmd)
-			return truncate(fmt.Sprintf("Code: -1\nOut:\n%s\n[INTERROMPU PAR AGENT SMITH]", out.String()), maxToolOut)
+			return truncate(fmt.Sprintf("Code: -1\nOut:\n%s\n[INTERROMPU PAR AGENT SMITH]", sortie), maxToolOut)
 		}
-		if ee, ok := err.(*exec.ExitError); ok {
+		if ee, ok := runErr.(*exec.ExitError); ok {
 			exitCode = ee.ExitCode()
 		} else {
-			// CORRIGÉ : échec hors ExitError (binaire introuvable, permission...)
 			exitCode = -1
 		}
 	}
-	return truncate(fmt.Sprintf("Code: %d\nOutput:\n%s", exitCode, out.String()), maxToolOut)
+	if complet {
+		return truncate(fmt.Sprintf("Code: %d\nOutput (début + fin, %d octets au total):\n%s", exitCode, taille.Size(), sortie), maxToolOut+4096)
+	}
+	return truncate(fmt.Sprintf("Code: %d\nOutput:\n%s", exitCode, sortie), maxToolOut)
+}
+
+// fReadAt lit au plus len(buf) octets à l'offset donné (utilitaire local).
+func fReadAt(nom string, buf []byte, offset int64) (int, error) {
+	f, err := os.Open(nom)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+	return f.ReadAt(buf, offset)
 }
 
 func (a *Agent) toolWebSearch(ctx context.Context, args map[string]any) (string, error) {

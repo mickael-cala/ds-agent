@@ -15,7 +15,7 @@ import (
 
 func TestSandboxArgs(t *testing.T) {
 	look := func(string) (string, error) { return "/usr/bin/bwrap", nil }
-	bin, args, err := commandWithSandbox("bwrap", "/home/moi/projet", "ls -la", look)
+	bin, args, err := commandWithSandbox("bwrap", "/home/moi/projet", "ls -la", false, look)
 	if err != nil {
 		t.Fatalf("erreur inattendue : %v", err)
 	}
@@ -32,20 +32,20 @@ func TestSandboxArgs(t *testing.T) {
 
 func TestSandboxIndisponible(t *testing.T) {
 	look := func(string) (string, error) { return "", os.ErrNotExist }
-	if _, _, err := commandWithSandbox("bwrap", "/tmp/x", "ls", look); err == nil {
+	if _, _, err := commandWithSandbox("bwrap", "/tmp/x", "ls", false, look); err == nil {
 		t.Fatal("bwrap absent devrait faire échouer la commande")
 	}
 }
 
 func TestSandboxModeInconnu(t *testing.T) {
 	look := func(string) (string, error) { return "/usr/bin/bwrap", nil }
-	if _, _, err := commandWithSandbox("nsjail", "/tmp/x", "ls", look); err == nil {
+	if _, _, err := commandWithSandbox("nsjail", "/tmp/x", "ls", false, look); err == nil {
 		t.Fatal("mode inconnu accepté")
 	}
 }
 
 func TestSandboxNone(t *testing.T) {
-	bin, args, err := commandWithSandbox("none", "/tmp/x", "echo ok", nil)
+	bin, args, err := commandWithSandbox("none", "/tmp/x", "echo ok", false, nil)
 	if err != nil {
 		t.Fatalf("erreur : %v", err)
 	}

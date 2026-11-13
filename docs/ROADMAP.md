@@ -28,7 +28,7 @@ cases sont cochées : il est fini quand son critère est vérifié en CI.
 
 | Indicateur | Valeur |
 |---|---|
-| Tests unitaires | ✅ 91 (+ 3 cibles de fuzzing exercées en CI) |
+| Tests unitaires | ✅ 97 (+ 3 cibles de fuzzing exercées en CI) |
 | Couverture | ⚠️ 67,7 % (objectif v0.3 : ≥ 65 %, `T1`) |
 | Banc hostile | ✅ 16 scénarios, 0 échec critique |
 | Bout-en-bout | ✅ 2 scénarios (binaire réel + mock) |
@@ -115,8 +115,8 @@ v0.4→v0.6 empilent des fonctionnalités sur un socle qu'on ne sait pas tester.
 L'objectif est de pouvoir dire : « même avec un dépôt hostile, l'agent ne peut pas sortir de
 son périmètre sans que je le voie ».
 
-- ⬜ `S4` `--sandbox` : isolation réseau optionnelle (`--unshare-net`), et mode
-  « réseau ouvert mais destinations journalisées »
+- ✅ `S4` `--sandbox --no-net` : isolation réseau (`--unshare-net`) ; le réseau reste ouvert
+  par défaut, mais la décision est explicite (constat : l'exfiltration par `curl` restait possible)
 - ⬜ `S5` Chiffrement au repos des sessions et de l'audit (clé dérivée d'un secret local,
   `age`/`scrypt`), ou purge automatique configurable
 - ⬜ `S6` Sandbox macOS (`sandbox-exec`) et Windows (AppContainer / Job Object) — sinon
@@ -144,11 +144,10 @@ C'est le jalon qui transforme « parfois correct » en « utilisable au quotidie
 - ✅ `E4` `/undo` (restaure les fichiers du dernier checkpoint) et `/diff` (état + patch non commité)
 - ✅ `E5` Checkpoints git : identité dédiée `ds-agent`, pas de commit vide, échec signalé
   (ERRATA-111) — reste ⬜ le regroupement « un commit par tâche »
-- ⬜ `E6` Détection de réécriture massive (fichier > 2 000 lignes, binaire, CRLF) : avertir
-  et exiger confirmation supplémentaire
-- ⬜ `E7` Rapport de tâche : liste des fichiers touchés, commandes lancées, tests passés
-- **Reste à faire** : `E6` détection de réécriture massive (fichier > 2 000 lignes, binaire,
-  CRLF), `E7` rapport de tâche, scénarios d'édition bout-en-bout.
+- ✅ `E6` Garde-fous d'écriture : contenu binaire (NUL) refusé, réécriture massive
+  (fichier > 200 lignes, > 80 % du contenu remplacé) soumise à une confirmation supplémentaire
+- ✅ `E7` Rapport de tâche : fichiers touchés et commandes exécutées, affichés en fin de tour
+- **Reste à faire** : scénarios d'édition bout-en-bout (10 cas réels).
 - **Critère de sortie** (non atteint) : 10 scénarios d'édition réels passés en e2e sur le
   **résultat**, pas seulement l'exit code.
 
@@ -158,7 +157,9 @@ C'est le jalon qui transforme « parfois correct » en « utilisable au quotidie
 
 - ⬜ `X1` Carte du dépôt : `git ls-files` + arborescence compacte + `go doc`/`rg` pour les
   symboles, injectée à la demande (pas en permanence)
-- ⬜ `X2` Tokenizer réel (compatible DeepSeek ; à défaut compteur calibré et mesuré)
+- ⬜ `X2` Tokenizer réel (compatible DeepSeek ; à défaut compteur calibré et mesuré) et
+  **réserve de contexte paramétrable** (défaut 16 384 tokens plutôt que 8 000 : on compacte
+  aujourd'hui avant d'en avoir besoin)
 - ⬜ `X3` Cache de lectures : contenu + hash + mtime ; re-signaler au modèle « fichier
   inchangé depuis la dernière lecture » au lieu de le re-lire
 - ⬜ `X4` Compaction non destructive : résumé court des messages omis (1 ligne chacun,
@@ -166,6 +167,10 @@ C'est le jalon qui transforme « parfois correct » en « utilisable au quotidie
 - ⬜ `X5` Requêtes ciblées : `local_grep` (motif, glob, max résultats) plutôt que « lis le
   fichier et cherche »
 - ⬜ `X6` Budget par tour avec jauge visible en continu, pas seulement via `/status`
+- ✅ `X7` `local_read_file` paginé (`offset`/`limit`) + cap **lignes ET octets** dans `truncate`
+  (inspiré de pi : 2 000 lignes ou 50 Ko, au premier atteint)
+- ✅ `X8` `local_bash` : conserver le **début et la fin** de la sortie, écrire la sortie
+  complète dans un fichier temporaire et en renvoyer le chemin (les erreurs sont en fin de log)
 - **Critère de sortie** : sur un dépôt réel de 20 000+ lignes, une tâche simple (ajouter un
   endpoint + un test) tient dans le budget sans compaction, avec moins de 15 appels d'outils.
 

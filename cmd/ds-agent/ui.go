@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -391,6 +392,42 @@ func (a *Agent) promptLabel() string {
 		label += "|" + strings.Join(m, ",")
 	}
 	return label
+}
+
+func (a *Agent) noterFichier(p string) {
+	if a.touched == nil {
+		a.touched = map[string]bool{}
+	}
+	a.touched[p] = true
+}
+
+func (a *Agent) noterCommande(c string) {
+	a.commands = append(a.commands, truncate(c, 160))
+}
+
+// rapportTache affiche ce que la tâche a réellement touché (E7), puis remet les
+// compteurs à zéro : pas d'accumulation d'un tour sur l'autre.
+func (a *Agent) rapportTache() {
+	if len(a.touched) == 0 && len(a.commands) == 0 {
+		return
+	}
+	var fichiers []string
+	for f := range a.touched {
+		fichiers = append(fichiers, f)
+	}
+	sort.Strings(fichiers)
+	fmt.Printf("\n[Rapport] %d fichier(s) modifié(s)", len(fichiers))
+	if len(fichiers) > 0 {
+		fmt.Printf(" : %s", sanitizeTerm(strings.Join(fichiers, ", ")))
+	}
+	if len(a.commands) > 0 {
+		fmt.Printf("\n[Rapport] %d commande(s) exécutée(s) :", len(a.commands))
+		for _, c := range a.commands {
+			fmt.Printf("\n   → %s", sanitizeTerm(c))
+		}
+	}
+	fmt.Println()
+	a.touched, a.commands = nil, nil
 }
 
 // finDeTache réinitialise les modes à portée d'une tâche : /godmode ne doit pas

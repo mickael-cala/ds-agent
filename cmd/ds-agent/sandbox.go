@@ -15,6 +15,10 @@ import (
 // sandboxMode vaut "none" par défaut, "bwrap" avec --sandbox (ou DEEPSEEK_SANDBOX).
 var sandboxMode = "none"
 
+// sandboxNoNet coupe le réseau dans le sandbox (--no-net / DEEPSEEK_SANDBOX_NET=off).
+// Par défaut le réseau reste ouvert : on rend la décision explicite, on ne la cache pas.
+var sandboxNoNet = false
+
 // shellCommand renvoie l'interpréteur et ses arguments pour exécuter `cmd`.
 // Isolé du reste pour être testable sans lancer de processus.
 func shellCommand(goos, cmd string) (string, []string) {
@@ -32,7 +36,7 @@ func shellCommand(goos, cmd string) (string, []string) {
 // `look` est injecté pour les tests (exec.LookPath en production).
 // En l'absence de bwrap, on refuse d'exécuter : un faux bac à sable serait pire
 // qu'une absence de bac à sable (l'utilisateur croirait être protégé).
-func commandWithSandbox(mode, workDir, cmd string, look func(string) (string, error)) (string, []string, error) {
+func commandWithSandbox(mode, workDir, cmd string, noNet bool, look func(string) (string, error)) (string, []string, error) {
 	sh, shArgs := shellCommand(runtime.GOOS, cmd)
 	switch mode {
 	case "", "none":
@@ -50,6 +54,12 @@ func commandWithSandbox(mode, workDir, cmd string, look func(string) (string, er
 			"--new-session",
 			"--unshare-pid",
 			"--unshare-uts",
+		}
+		if noNet {
+			// S4 : sans réseau, l'exfiltration par `curl` devient impossible.
+			args = append(args, "--unshare-net")
+		}
+		args = append(args,
 			"--ro-bind", "/", "/",
 			"--dev", "/dev",
 			"--proc", "/proc",
@@ -62,7 +72,7 @@ func commandWithSandbox(mode, workDir, cmd string, look func(string) (string, er
 			"--setenv", "PATH", os.Getenv("PATH"),
 			"--",
 			sh, shArgs[0], shArgs[1],
-		}
+		)
 		return "bwrap", args, nil
 	default:
 		return "", nil, fmt.Errorf("mode sandbox inconnu : %q (attendu : none|bwrap)", mode)

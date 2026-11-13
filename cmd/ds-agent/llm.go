@@ -88,6 +88,18 @@ func (a *Agent) runLoop(ctx context.Context) (string, error) {
 				if tc.Function.Name == "local_write_file" || tc.Function.Name == "local_edit_file" {
 					result += a.validerApresEdition(ctx)
 				}
+				// E7 : de quoi produire un rapport de tâche honnête en fin de tour.
+				args := argsDe(tc.Function.Arguments)
+				switch tc.Function.Name {
+				case "local_write_file", "local_edit_file":
+					if p, ok := args["path"].(string); ok && result != "Annulé" {
+						a.noterFichier(p)
+					}
+				case "local_bash":
+					if c, ok := args["command"].(string); ok && result != "Annulé" {
+						a.noterCommande(c)
+					}
+				}
 			}
 
 			if err != nil {

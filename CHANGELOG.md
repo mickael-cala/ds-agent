@@ -6,6 +6,20 @@ publié sous forme de release binaire : les versions ci-dessous décrivent l'ét
 
 ## [Non publié]
 
+### Ajouté — clôture v0.5, apports pi, réseau (E6–E7, S4, X7–X8)
+
+- **Garde-fous d'écriture** : contenu binaire (octet NUL) refusé ; réécriture massive
+  (> 200 lignes et > 80 % du contenu remplacé) signalée dans la confirmation (`E6`).
+- **Rapport de tâche** : en fin de tour, fichiers modifiés et commandes exécutées — puis
+  compteurs remis à zéro (`E7`).
+- **`--sandbox --no-net`** : `--unshare-net`, l'exfiltration par `curl` devient impossible ;
+  le réseau reste ouvert par défaut, mais la décision est explicite (`S4`).
+- **Lecture paginée** : `local_read_file` accepte `offset`/`limit` (2 000 lignes max par
+  appel, indication de reprise) — plus besoin de bricoler `sed`/`head` via bash (`X7`).
+- **Sortie bash début + fin** : la sortie complète part dans un fichier temporaire (chemin
+  renvoyé), le modèle reçoit les 30 premiers et 30 derniers Ko — les erreurs de build sont
+  en fin de log, elles ne sont plus coupées (`X8`, inspiré des limites de `pi`).
+
 ### Ajouté — fiabilité d'édition (v0.5, E1–E5)
 
 - **Édition ancrée** : `search_block` doit apparaître exactement une fois. Zéro occurrence =

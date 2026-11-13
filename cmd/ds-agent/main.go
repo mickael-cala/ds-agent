@@ -126,12 +126,13 @@ options :
   -auto           auto-approbation : aucune confirmation
   -no-spinner     désactive l'animation (automatique hors terminal)
   -sandbox        confine local_bash avec bubblewrap (bwrap requis)
+  -no-net         coupe le réseau dans le sandbox (implique -sandbox)
   -h, -help       affiche cette aide
 
 variables : DEEPSEEK_API_KEY (obligatoire), DEEPSEEK_MODEL, DEEPSEEK_API_BASE,
   DEEPSEEK_CONTEXT_TOKENS, DEEPSEEK_MAX_ITERATIONS, DEEPSEEK_MAX_TOKENS,
   DEEPSEEK_BASH_TIMEOUT, DEEPSEEK_HTTP_TIMEOUT, DEEPSEEK_MCP_TIMEOUT,
-  DEEPSEEK_SANDBOX, DEEPSEEK_AUDIT
+  DEEPSEEK_SANDBOX, DEEPSEEK_SANDBOX_NET, DEEPSEEK_AUDIT
 
 commandes : /help /status /verbose /model /think /auto /clear /exit
   et les modes /mandalorian /bladerunner /terminator /matrix /rabbithole /godmode
@@ -139,12 +140,13 @@ commandes : /help /status /verbose /model /think /auto /clear /exit
 }
 
 type options struct {
-	Version   bool
-	Dir       string
-	Model     string
-	Auto      bool
-	NoSpinner bool
-	Sandbox   bool
+	Version    bool
+	Dir        string
+	Model      string
+	Auto       bool
+	NoSpinner  bool
+	Sandbox    bool
+	SansReseau bool
 }
 
 // parseOptions isole le parsing des drapeaux pour pouvoir le tester.
@@ -158,6 +160,7 @@ func parseOptions(args []string) (options, error) {
 	fs.BoolVar(&o.Auto, "auto", false, "auto-approbation (aucune confirmation)")
 	fs.BoolVar(&o.NoSpinner, "no-spinner", false, "désactive l'animation")
 	fs.BoolVar(&o.Sandbox, "sandbox", false, "confine local_bash avec bubblewrap (bwrap)")
+	fs.BoolVar(&o.SansReseau, "no-net", false, "coupe le réseau dans le sandbox (implique --sandbox)")
 	if err := fs.Parse(args); err != nil {
 		return o, err
 	}
@@ -185,8 +188,16 @@ func main() {
 	if sandboxMode == "" {
 		sandboxMode = "none"
 	}
-	if opts.Sandbox {
+	if opts.Sandbox || opts.SansReseau {
 		sandboxMode = "bwrap"
+	}
+	// DEEPSEEK_SANDBOX_NET=off coupe aussi le réseau, sans changer de mode.
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("DEEPSEEK_SANDBOX_NET"))) {
+	case "off", "0", "false", "no":
+		sandboxNoNet = true
+	}
+	if opts.SansReseau {
+		sandboxNoNet = true
 	}
 	if sandboxMode == "bwrap" && !isBwrapAvailable() {
 		fmt.Fprintln(os.Stderr, "erreur : --sandbox/ DEEPSEEK_SANDBOX=bwrap exige bubblewrap (bwrap absent)")
@@ -308,6 +319,7 @@ func main() {
 
 		reply, err := a.runLoop(ctx)
 		a.finDeTache()
+		a.rapportTache()
 
 		a.cancelMu.Lock()
 		a.cancelFunc = nil

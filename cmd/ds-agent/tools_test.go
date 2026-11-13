@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -107,21 +108,40 @@ func TestExecuteToolDispatch(t *testing.T) {
 
 func TestToolReadFileTronqueEtErreurs(t *testing.T) {
 	dir := t.TempDir()
-	gros := strings.Repeat("x\n", 700000) // > 1 Mo
-	if err := os.WriteFile(filepath.Join(dir, "gros.txt"), []byte(gros), 0o644); err != nil {
+	var b strings.Builder
+	for i := 0; i < 3000; i++ {
+		fmt.Fprintf(&b, "ligne %d\n", i+1)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "long.txt"), []byte(b.String()), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	a := nouvelAgent(dir)
 
-	out, err := a.toolReadFile(map[string]any{"path": "gros.txt"})
+	out, err := a.toolReadFile(map[string]any{"path": "long.txt"})
 	if err != nil {
 		t.Fatalf("lecture : %v", err)
 	}
-	if !strings.Contains(out, "TRONQUÉ") {
-		t.Error("absence du marqueur de troncature pour un fichier > 1 Mo")
+	if !strings.Contains(out, "1| ligne 1") || !strings.Contains(out, "2000| ligne 2000") {
+		t.Error("les 2 000 premières lignes ne sont pas rendues")
 	}
-	if len(out) > maxToolOut+len("\n[TRONQUÉ]") {
-		t.Errorf("sortie non bornée : %d octets", len(out))
+	if strings.Contains(out, "2001| ligne 2001") {
+		t.Error("pagination non appliquée : au-delà de 2 000 lignes rendues")
+	}
+	if !strings.Contains(out, "offset=2001") {
+		t.Errorf("absence de l'indication de reprise : %q", out[max(0, len(out)-120):])
+	}
+
+	suite, err := a.toolReadFile(map[string]any{"path": "long.txt", "offset": 2001, "limit": 10})
+	if err != nil {
+		t.Fatalf("lecture paginée : %v", err)
+	}
+	if !strings.Contains(suite, "2001| ligne 2001") {
+		t.Errorf("offset ignoré : %q", suite)
+	}
+
+	out, err = a.toolReadFile(map[string]any{"path": "long.txt", "offset": 99999})
+	if err != nil || !strings.Contains(out, "au-delà de la fin") {
+		t.Errorf("offset hors fichier mal signalé : %q / %v", out, err)
 	}
 	if _, err := a.toolReadFile(map[string]any{"path": "absent.txt"}); err == nil {
 		t.Error("fichier absent : aucune erreur")

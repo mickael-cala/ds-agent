@@ -28,12 +28,13 @@ Règles du jeu :
 | 11 | Tests, couverture, fuzzing (v0.3) | 5 | ✅ fait | « Sprint 11 » |
 | 12 | Clôture v0.3 : injection, godmode, docs | 5 | ✅ fait | « Sprint 12 » |
 | 13 | v0.5 : fiabilité d'édition | 5 | ✅ fait | « Sprint 13 » |
+| 14 | Clôture v0.5 + apports pi + réseau | 5 | ✅ fait | « Sprint 14 » |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
 Les hashs de commits ne sont **pas** stockés ici (ils changent à chaque rebase) : se référer
 aux messages de commit. La suite du programme est dans [ROADMAP.md](ROADMAP.md) (v0.3 → v1.0).
 
-**Bilan : 60/60 items livrés**, 91 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
+**Bilan : 65/65 items livrés**, 97 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
 CI multi-plateforme, documentation à jour.
 
 ---
@@ -178,6 +179,16 @@ Effets de bord corrigés au passage : `toolWebSearch` acceptait un `query` absen
 | 13.3 | `/test <commande>` exécutée après chaque écriture | E3 | `TestValidationApresEdition` | ✅ |
 | 13.4 | `/undo` (restauration depuis le checkpoint) et `/diff` | E4 | `TestUndoDernierCheckpoint`, `TestDiffTravail` | ✅ |
 | 13.5 | Checkpoints propres : identité `ds-agent`, pas de commit vide, erreurs visibles | E5 | `TestCheckpointIdentiteEtContenu` | ✅ |
+
+## Sprint 14 — « clôture v0.5, apports pi, isolation réseau »
+
+| # | Item | Réf. | Preuve | Statut |
+|---|---|---|---|---|
+| 14.1 | Garde-fous d'écriture : binaire refusé, réécriture massive à reconfirmer | E6 | `TestRefusEcritureBinaire`, `TestAvertissementReecritureMassive` | ✅ |
+| 14.2 | Rapport de tâche : fichiers modifiés + commandes exécutées | E7 | `TestRapportTache` | ✅ |
+| 14.3 | `--sandbox --no-net` : isolation réseau (`--unshare-net`) | S4 | `TestSandboxSansReseau` | ✅ |
+| 14.4 | `local_read_file` paginé (`offset`/`limit`) | X7 | `TestReadFilePagination`, `TestToolReadFileTronqueEtErreurs` | ✅ |
+| 14.5 | `local_bash` : début + fin conservés, sortie complète dans un fichier | X8 | `TestBashConserveLaFin` | ✅ |
 
 ## Réserve (non planifié)
 

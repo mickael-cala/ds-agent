@@ -169,6 +169,9 @@ type Agent struct {
 	verbose          bool   // /verbose : affiche le contenu des sorties d'outils
 	testCmd          string // /test <commande> : validation exécutée après édition
 
+	touched  map[string]bool // fichiers modifiés pendant la tâche (rapport E7)
+	commands []string        // commandes exécutées pendant la tâche (rapport E7)
+
 	// Protocole EMP Agent Smith (Ctrl+C)
 	cancelMu   sync.Mutex
 	cancelFunc context.CancelFunc

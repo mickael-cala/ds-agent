@@ -67,6 +67,7 @@ Scripts fournis : `build_and_run.sh` (Unix), `build_and_run.cmd` (Windows), `cle
 | `DEEPSEEK_HTTP_TIMEOUT` | `300` | délai max d'une requête à l'API (s) |
 | `DEEPSEEK_MCP_TIMEOUT` | `60` | délai max d'un appel MCP (s) |
 | `DEEPSEEK_SANDBOX` | `none` | `bwrap` pour confiner `local_bash` |
+| `DEEPSEEK_SANDBOX_NET` | `on` | `off` coupe le réseau dans le sandbox |
 | `DEEPSEEK_AUDIT` | `on` | `off` désactive le journal d'audit |
 | `MCP_ROOT` | répertoire courant | injecté dans les serveurs MCP |
 
@@ -88,6 +89,7 @@ Scripts fournis : `build_and_run.sh` (Unix), `build_and_run.cmd` (Windows), `cle
 | `--auto` | auto-approbation : aucune confirmation |
 | `--no-spinner` | désactive l'animation (automatique hors terminal) |
 | `--sandbox` | confine `local_bash` avec bubblewrap (racine en lecture seule) |
+| `--no-net` | coupe le réseau dans le sandbox (implique `--sandbox`) |
 
 ### Commandes du REPL
 
@@ -114,10 +116,10 @@ L'invite affiche les modes actifs : `[deepseek-chat|GOD,RABBIT] Vous >`.
 
 | Outil | Arguments | Description |
 |---|---|---|
-| `local_read_file` | `path` | lit un fichier, lignes numérotées (≤ 1 Mo) |
+| `local_read_file` | `path`, `offset`, `limit` | lit un fichier paginé (2 000 lignes/appel) |
 | `local_write_file` | `path`, `content` | écrit (diff affiché, checkpoint git) |
 | `local_edit_file` | `path`, `search_block`, `replace_block` | remplace un bloc unique |
-| `local_bash` | `command` | `sh -c` / `cmd /c`, 120 s, groupe de processus tué au timeout |
+| `local_bash` | `command` | `sh -c` / `cmd /c`, 120 s, groupe tué au timeout, début + fin conservés |
 | `local_web_search` | `query` | recherche via l'API DeepSeek |
 | `local_web_fetch` | `url` | contenu d'une URL (`http`/`https` uniquement) |
 
@@ -157,7 +159,8 @@ L'agent lance chaque serveur, l'initialise, liste ses outils et les injecte dans
 - **Commandes destructrices** refusées avant confirmation (`rm -rf /`, `mkfs`, `dd of=/dev/…`,
   fork bomb, `curl | sh`), contournables seulement par `/godmode`.
 - **Sandbox optionnelle** : `--sandbox` (bubblewrap) — racine en lecture seule, `workDir` et
-  `/tmp` inscriptibles, PID isolés. Sans `bwrap`, l'agent refuse de démarrer dans ce mode.
+  `/tmp` inscriptibles, PID isolés ; `--no-net` y ajoute `--unshare-net`. Sans `bwrap`,
+  l'agent refuse de démarrer dans ce mode.
 - **Journal d'audit** JSONL `~/.config/ds-agent/audit.jsonl` (`0600`, append-only) : outil,
   empreinte des arguments, décision, résultat, taille.
 - **Bornes** : corps HTTP ≤ 32 Mo, sortie d'outil ≤ 60 Ko, message ≤ 12 000 tokens,
@@ -174,7 +177,7 @@ isolé, et une injection de prompt (contenu lu) n'est pas détectée. Voir
 ```bash
 make check                    # lint + tests + anti-secret + banc hostile + e2e
 # détail :
-go test ./...                 # 91 tests (compaction, sécurité, outils, sessions)
+go test ./...                 # 97 tests (compaction, sécurité, outils, sessions)
 go vet ./... && gofmt -l .
 bash tests/paranoid.sh        # banc hostile : 16 scénarios, 0 échec attendu
 bash tests/e2e.sh             # bout-en-bout : binaire réel + mock, boucle d'outils
