@@ -402,6 +402,14 @@ func (a *Agent) finDeTache() {
 	}
 }
 
+// ou renvoie la valeur ou un texte de repli.
+func ou(valeur, repli string) string {
+	if strings.TrimSpace(valeur) == "" {
+		return repli
+	}
+	return valeur
+}
+
 // printStatus affiche l'état réel de la session (U05) : sans ça, l'utilisateur
 // doit se souvenir de ce qu'il a activé et de ce qu'il reste comme budget.
 func (a *Agent) printStatus() {
@@ -431,6 +439,7 @@ func (a *Agent) printStatus() {
 	fmt.Printf("modèle      : %s (thinking %v, effort %q)\n", a.model, a.thinking, a.effort)
 	fmt.Printf("modes       : %s\n", strings.Join(modes, " "))
 	fmt.Printf("verbose     : %v\n", a.verbose)
+	fmt.Printf("validation  : %s\n", ou(a.testCmd, "aucune (/test …)"))
 	fmt.Printf("outils      : %d natifs + %d MCP (%d serveurs)\n",
 		len(a.getTools())-mcpTools, mcpTools, len(a.mcpServers))
 	fmt.Printf("contexte    : ~%d / %d tokens (%d messages, %d omis)\n",
@@ -461,6 +470,24 @@ func (a *Agent) handleCommand(in string) {
 		}
 	case "/status":
 		a.printStatus()
+	case "/test":
+		if len(p) > 1 {
+			a.testCmd = strings.Join(p[1:], " ")
+			fmt.Printf("Validation après écriture : %s\n", a.testCmd)
+		} else if a.testCmd != "" {
+			a.testCmd = ""
+			fmt.Println("Validation désactivée.")
+		} else {
+			fmt.Println("usage : /test <commande>   (sans argument : désactive)")
+		}
+	case "/undo":
+		if msg, err := a.undoDernierCheckpoint(); err != nil {
+			fmt.Println("undo :", err)
+		} else {
+			fmt.Println(msg)
+		}
+	case "/diff":
+		fmt.Println(a.diffTravail())
 	case "/verbose":
 		a.verbose = !a.verbose
 		fmt.Println("verbose :", a.verbose)
@@ -543,6 +570,9 @@ func (a *Agent) handleCommand(in string) {
 		fmt.Println("  /auto          : Auto-approbation pacifique (silencieux)")
 		fmt.Println("  /status        : Modèle, modes, outils, budget, session, audit")
 		fmt.Println("  /verbose       : Affiche le contenu des sorties d'outils")
+		fmt.Println("  /test <cmd>    : Validation exécutée après chaque écriture (ex. /test go test ./...)")
+		fmt.Println("  /undo          : Annule le dernier checkpoint de l'agent (git revert)")
+		fmt.Println("  /diff          : Modifications non commitées du répertoire")
 		fmt.Println("\n=== LES MODES DU CHAOS (Cumulables) ===")
 		fmt.Println("  /mandalorian🛡️ : Interdit au modèle de parler, il exécute la tâche en silence.")
 		fmt.Println("  /bladerunner🦄 : Pousse l'agent à auditer la sécurité et traquer les bugs.")

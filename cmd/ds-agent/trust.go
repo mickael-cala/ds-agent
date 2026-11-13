@@ -32,13 +32,106 @@ func (a *Agent) safePath(p string) (string, error) {
 	return realPath, nil
 }
 
+// identiteGit : identité dédiée aux checkpoints, pour ne pas dépendre de la
+// configuration git de l'utilisateur et rendre les commits identifiables (E5).
+var identiteGit = []string{"-c", "user.name=ds-agent", "-c", "user.email=ds-agent@localhost"}
+
 func (a *Agent) gitCheckpoint(p string) {
 	if _, err := os.Stat(filepath.Join(a.workDir, ".git")); os.IsNotExist(err) {
 		return
 	}
-	rel, _ := filepath.Rel(a.workDir, p)
-	exec.Command("git", "-C", a.workDir, "add", "--", rel).Run()
-	exec.Command("git", "-C", a.workDir, "commit", "-m", "Auto-checkpoint: "+rel, "--", rel).Run()
+	rel, err := filepath.Rel(a.workDir, p)
+	if err != nil {
+		return
+	}
+	// Rien de modifié (ni nouveau fichier) : pas de commit vide.
+	statut, err := exec.Command("git", "-C", a.workDir, "status", "--porcelain", "--", rel).Output()
+	if err != nil || strings.TrimSpace(string(statut)) == "" {
+		return
+	}
+	if out, err := exec.Command("git", "-C", a.workDir, "add", "--", rel).CombinedOutput(); err != nil {
+		fmt.Fprintf(os.Stderr, "[git] add impossible pour %s : %v — %s\n", rel, err, snippet(out, 200))
+		return
+	}
+	args := append([]string{"-C", a.workDir}, identiteGit...)
+	args = append(args, "commit", "-m", "Auto-checkpoint: "+rel, "--", rel)
+	if out, err := exec.Command("git", args...).CombinedOutput(); err != nil {
+		fmt.Fprintf(os.Stderr, "[git] checkpoint non créé pour %s : %v — %s\n", rel, err, snippet(out, 200))
+	}
+}
+
+// undoDernierCheckpoint restaure les fichiers du dernier checkpoint à leur état
+// d'avant (E4). On restaure le contenu plutôt qu'un `git revert` : le fichier est
+// presque toujours modifié (non commité) au moment du /undo, ce que revert refuse.
+// On ne touche jamais à un commit qui n'est pas un checkpoint de l'agent.
+func (a *Agent) undoDernierCheckpoint() (string, error) {
+	if _, err := os.Stat(filepath.Join(a.workDir, ".git")); os.IsNotExist(err) {
+		return "", fmt.Errorf("pas de dépôt git dans %s : /undo indisponible", a.workDir)
+	}
+	titre, err := exec.Command("git", "-C", a.workDir, "log", "-1", "--format=%s").Output()
+	if err != nil {
+		return "", fmt.Errorf("git log : %w", err)
+	}
+	sujet := strings.TrimSpace(string(titre))
+	if !strings.HasPrefix(sujet, "Auto-checkpoint:") {
+		return "", fmt.Errorf("le dernier commit n'est pas un checkpoint de l'agent (%q)", sujet)
+	}
+	noms, err := exec.Command("git", "-C", a.workDir, "show", "--pretty=format:", "--name-only", "HEAD").Output()
+	if err != nil {
+		return "", fmt.Errorf("git show : %w", err)
+	}
+	var restaures, supprimes []string
+	for _, f := range strings.Fields(string(noms)) {
+		rel := strings.TrimSpace(f)
+		if rel == "" {
+			continue
+		}
+		// Le checkpoint contient l'état d'AVANT la modification de l'agent :
+		// c'est donc HEAD (et non HEAD~1) qu'il faut restaurer.
+		if out, err := exec.Command("git", "-C", a.workDir, "checkout", "HEAD", "--", rel).CombinedOutput(); err == nil {
+			restaures = append(restaures, rel)
+			continue
+		} else if strings.Contains(string(out), "did not match") || strings.Contains(string(out), "pathspec") {
+			// Fichier créé par l'agent : revenir en arrière = le retirer.
+			if err := os.Remove(filepath.Join(a.workDir, rel)); err == nil {
+				supprimes = append(supprimes, rel)
+				continue
+			}
+		}
+		return "", fmt.Errorf("restauration de %s impossible", rel)
+	}
+	if len(restaures) == 0 && len(supprimes) == 0 {
+		return "", fmt.Errorf("checkpoint sans fichier à restaurer (%q)", sujet)
+	}
+	msg := "Checkpoint annulé — " + sujet
+	if len(restaures) > 0 {
+		msg += "\nrestaurés : " + strings.Join(restaures, ", ")
+	}
+	if len(supprimes) > 0 {
+		msg += "\nsupprimés (créés par l'agent) : " + strings.Join(supprimes, ", ")
+	}
+	msg += "\n(le commit de checkpoint reste dans l'historique ; commitez ou annulez la restauration avec git)"
+	return msg, nil
+}
+
+// diffTravail résume les modifications non commitées du répertoire (E4, /diff).
+func (a *Agent) diffTravail() string {
+	if _, err := os.Stat(filepath.Join(a.workDir, ".git")); os.IsNotExist(err) {
+		return "Pas de dépôt git dans " + a.workDir + " : /diff indisponible."
+	}
+	statut, err := exec.Command("git", "-C", a.workDir, "status", "--short").CombinedOutput()
+	if err != nil {
+		return "git status : " + err.Error()
+	}
+	diff, err := exec.Command("git", "-C", a.workDir, "--no-pager", "diff", "--stat", "--patch", "--", ".").CombinedOutput()
+	if err != nil {
+		return "git diff : " + err.Error()
+	}
+	if strings.TrimSpace(string(statut)) == "" && strings.TrimSpace(string(diff)) == "" {
+		return "Aucune modification non commitée."
+	}
+	// status couvre les fichiers non suivis, diff le contenu des fichiers suivis.
+	return truncate(string(statut)+"\n"+string(diff), 8000)
 }
 
 // isSecretEnvKey reconnaît les variables d'environnement à ne jamais transmettre

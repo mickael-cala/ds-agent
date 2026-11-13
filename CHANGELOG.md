@@ -6,6 +6,24 @@ publié sous forme de release binaire : les versions ci-dessous décrivent l'ét
 
 ## [Non publié]
 
+### Ajouté — fiabilité d'édition (v0.5, E1–E5)
+
+- **Édition ancrée** : `search_block` doit apparaître exactement une fois. Zéro occurrence =
+  erreur de contexte, plusieurs = refus explicite avec le nombre d'occurrences. Plus de
+  modification silencieuse de « la première » occurrence (`E1`).
+- **Relecture après écriture** : `verifierContenu` relit le fichier et le compare octet à
+  octet ; l'outil répond « relue et vérifiée » ou échoue (`E2`).
+- **Boucle de validation** : `/test <commande>` (ex. `/test go test ./...`) est exécutée
+  automatiquement après chaque écriture réussie, avec verdict `OK`/`ÉCHEC` et sortie joints
+  au résultat d'outil — le modèle voit immédiatement ce qu'il a cassé (`E3`).
+- **`/undo` et `/diff`** : `/undo` restaure les fichiers du dernier checkpoint (refusé si le
+  dernier commit n'est pas un checkpoint de l'agent) ; `/diff` affiche l'état et le patch non
+  commités, fichiers non suivis compris (`E4`).
+- **Checkpoints git propres** : identité dédiée `ds-agent <ds-agent@localhost>`, aucun commit
+  vide, échec signalé sur stderr au lieu d'être avalé (`E5`, ERRATA-111).
+- `executerCommande` extrait de `toolBash` : même bornage (timeout, groupe de processus,
+  sortie plafonnée) réutilisé par la validation.
+
 ### Ajouté — clôture v0.3 (S1–S3, D2–D4)
 
 - **Contenus non fiables étiquetés** : chaque sortie d'outil part au modèle encadrée par

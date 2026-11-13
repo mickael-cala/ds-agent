@@ -159,14 +159,15 @@ type Agent struct {
 	omitted      int // messages omis depuis le début de la session
 
 	// Garde-fous d'exploitation
-	maxIterations    int  // DEEPSEEK_MAX_ITERATIONS (0 = défaut)
-	maxSessionTokens int  // DEEPSEEK_MAX_TOKENS (0 = pas de plafond)
-	spentTokens      int  // total estimé envoyé depuis le démarrage
-	bashTimeout      int  // DEEPSEEK_BASH_TIMEOUT en secondes
-	httpTimeout      int  // DEEPSEEK_HTTP_TIMEOUT en secondes
-	mcpTimeout       int  // DEEPSEEK_MCP_TIMEOUT en secondes
-	restored         int  // messages rechargés au démarrage
-	verbose          bool // /verbose : affiche le contenu des sorties d'outils
+	maxIterations    int    // DEEPSEEK_MAX_ITERATIONS (0 = défaut)
+	maxSessionTokens int    // DEEPSEEK_MAX_TOKENS (0 = pas de plafond)
+	spentTokens      int    // total estimé envoyé depuis le démarrage
+	bashTimeout      int    // DEEPSEEK_BASH_TIMEOUT en secondes
+	httpTimeout      int    // DEEPSEEK_HTTP_TIMEOUT en secondes
+	mcpTimeout       int    // DEEPSEEK_MCP_TIMEOUT en secondes
+	restored         int    // messages rechargés au démarrage
+	verbose          bool   // /verbose : affiche le contenu des sorties d'outils
+	testCmd          string // /test <commande> : validation exécutée après édition
 
 	// Protocole EMP Agent Smith (Ctrl+C)
 	cancelMu   sync.Mutex

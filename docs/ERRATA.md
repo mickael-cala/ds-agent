@@ -331,6 +331,17 @@ avant de couper, uniquement si elle est invalide.
 
 **Verrou.** `FuzzTruncate` (graines invalides incluses), `TestTruncateRespecteUTF8`.
 
+### ERRATA-111 — Checkpoints git silencieux et mal identifiés 🟡
+
+**Symptôme.** Sans `user.name`/`user.email`, `git commit` échouait et l'erreur était ignorée ;
+chaque appel créait aussi des commits vides, sous l'identité de l'utilisateur.
+
+**Correction.** Identité dédiée `ds-agent <ds-agent@localhost>`, vérification `git status`
+avant de committer (pas de commit vide), erreurs `add`/`commit` remontées sur stderr,
+`/undo` refuse tout commit qui n'est pas un checkpoint.
+
+**Verrou.** `TestCheckpointIdentiteEtContenu`, `TestUndoDernierCheckpoint`.
+
 ---
 
 ## 2. Défauts ouverts
@@ -382,16 +393,6 @@ fonctionnalité récente n'est utilisée.
 **Symptôme.** Ses 4 tests ne tournent pas depuis la racine (module Go séparé).
 
 **Parade.** `cd audit_api && go test ./...` ; intégration prévue en CI (ROADMAP v0.2).
-
-### ERRATA-111 — Checkpoints git silencieux 🟡
-
-**Symptôme.** Sans `user.name`/`user.email` configurés, `git commit` échoue et l'erreur
-est ignorée : aucune sauvegarde, aucun avertissement. De plus, ces commits automatiques
-polluent l'historique et héritent de l'identité de l'utilisateur.
-
-**Parade.** Configurer git dans le répertoire de travail, ou désactiver en travaillant
-hors dépôt. Amélioration prévue : identité dédiée + message traçable + avertissement
-(ROADMAP v0.3).
 
 ---
 

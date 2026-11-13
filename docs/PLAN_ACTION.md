@@ -27,12 +27,13 @@ Règles du jeu :
 | 10 | Réorganisation de la racine | 5 | ✅ fait | « Sprint 10 » |
 | 11 | Tests, couverture, fuzzing (v0.3) | 5 | ✅ fait | « Sprint 11 » |
 | 12 | Clôture v0.3 : injection, godmode, docs | 5 | ✅ fait | « Sprint 12 » |
+| 13 | v0.5 : fiabilité d'édition | 5 | ✅ fait | « Sprint 13 » |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
 Les hashs de commits ne sont **pas** stockés ici (ils changent à chaque rebase) : se référer
 aux messages de commit. La suite du programme est dans [ROADMAP.md](ROADMAP.md) (v0.3 → v1.0).
 
-**Bilan : 55/55 items livrés**, 83 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
+**Bilan : 60/60 items livrés**, 91 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
 CI multi-plateforme, documentation à jour.
 
 ---
@@ -167,6 +168,16 @@ Effets de bord corrigés au passage : `toolWebSearch` acceptait un `query` absen
 | 12.3 | Modèle de menace consolidé dans `SECURITY.md` | S1 | section « Modèle de menace » + « ne protège pas » | ✅ |
 | 12.4 | `scripts/check-docs.sh` (liens, compteurs, hashs) en CI | D2 | `TestCheckDocs`, `make docs` | ✅ |
 | 12.5 | Dettes doc soldées | D3, D4 | `check-docs` vert | ✅ |
+
+## Sprint 13 — « v0.5 : fiabilité d'édition »
+
+| # | Item | Réf. | Preuve | Statut |
+|---|---|---|---|---|
+| 13.1 | `search_block` unique obligatoire (0 ou >1 → refus) | E1 | `TestEditRefuseBlocAmbigu`, `TestEditBlocIntrouvable` | ✅ |
+| 13.2 | Relecture après écriture (comparaison octet à octet) | E2 | `TestVerifierContenu`, `TestEcritureRelue` | ✅ |
+| 13.3 | `/test <commande>` exécutée après chaque écriture | E3 | `TestValidationApresEdition` | ✅ |
+| 13.4 | `/undo` (restauration depuis le checkpoint) et `/diff` | E4 | `TestUndoDernierCheckpoint`, `TestDiffTravail` | ✅ |
+| 13.5 | Checkpoints propres : identité `ds-agent`, pas de commit vide, erreurs visibles | E5 | `TestCheckpointIdentiteEtContenu` | ✅ |
 
 ## Réserve (non planifié)
 

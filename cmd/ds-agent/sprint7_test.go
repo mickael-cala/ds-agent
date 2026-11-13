@@ -110,7 +110,7 @@ func TestEditAccepteBlocNumerote(t *testing.T) {
 	if err != nil {
 		t.Fatalf("édition : %v", err)
 	}
-	if out != "Modification appliquée." {
+	if !strings.HasPrefix(out, "Modification appliquée") {
 		t.Fatalf("résultat = %q", out)
 	}
 	if data, _ := os.ReadFile(chemin); string(data) != "a\nB\nc\n" {
@@ -129,8 +129,8 @@ func TestResumeOutil(t *testing.T) {
 	}{
 		{"local_read_file", map[string]any{"path": "main.go"}, "1| a\n2| b\n", "main.go → 2 ligne(s)"},
 		{"local_bash", map[string]any{"command": "ls"}, "Code: 0\nOutput:\n a\n b\n", "bash → exit 0"},
-		{"local_write_file", map[string]any{"path": "x.txt", "content": "a\nb"}, "Écriture réussie.", "x.txt → 2 ligne(s) écrites"},
-		{"local_edit_file", map[string]any{"path": "y.go", "replace_block": "x"}, "Modification appliquée.", "y.go → 1 ligne(s) remplacées"},
+		{"local_write_file", map[string]any{"path": "x.txt", "content": "a\nb"}, "Écriture réussie", "x.txt → 2 ligne(s) écrites"},
+		{"local_edit_file", map[string]any{"path": "y.go", "replace_block": "x"}, "Modification appliquée", "y.go → 1 ligne(s) remplacées"},
 		{"local_web_fetch", map[string]any{"url": "https://x"}, "# T\ncontenu", "local_web_fetch → 11 octet(s)"},
 		{"outil_mcp", nil, "ok", "outil_mcp → 2 octet(s)"},
 	}

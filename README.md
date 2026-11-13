@@ -174,7 +174,7 @@ isolé, et une injection de prompt (contenu lu) n'est pas détectée. Voir
 ```bash
 make check                    # lint + tests + anti-secret + banc hostile + e2e
 # détail :
-go test ./...                 # 83 tests (compaction, sécurité, outils, sessions)
+go test ./...                 # 91 tests (compaction, sécurité, outils, sessions)
 go vet ./... && gofmt -l .
 bash tests/paranoid.sh        # banc hostile : 16 scénarios, 0 échec attendu
 bash tests/e2e.sh             # bout-en-bout : binaire réel + mock, boucle d'outils

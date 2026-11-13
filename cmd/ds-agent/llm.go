@@ -83,6 +83,11 @@ func (a *Agent) runLoop(ctx context.Context) (string, error) {
 				// Caviardage : un secret lu par erreur (env, fichier, commande) ne
 				// doit pas repartir vers le modèle ni vers le fournisseur d'API.
 				result = a.redact(result)
+				// E3 : après une modification réussie, exécuter la validation
+				// déclarée par /test et joindre le verdict au résultat.
+				if tc.Function.Name == "local_write_file" || tc.Function.Name == "local_edit_file" {
+					result += a.validerApresEdition(ctx)
+				}
 			}
 
 			if err != nil {

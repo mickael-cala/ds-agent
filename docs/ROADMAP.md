@@ -28,7 +28,7 @@ cases sont cochées : il est fini quand son critère est vérifié en CI.
 
 | Indicateur | Valeur |
 |---|---|
-| Tests unitaires | ✅ 83 (+ 3 cibles de fuzzing exercées en CI) |
+| Tests unitaires | ✅ 91 (+ 3 cibles de fuzzing exercées en CI) |
 | Couverture | ⚠️ 67,7 % (objectif v0.3 : ≥ 65 %, `T1`) |
 | Banc hostile | ✅ 16 scénarios, 0 échec critique |
 | Bout-en-bout | ✅ 2 scénarios (binaire réel + mock) |
@@ -135,20 +135,22 @@ son périmètre sans que je le voie ».
 
 C'est le jalon qui transforme « parfois correct » en « utilisable au quotidien ».
 
-- ⬜ `E1` Édition par patch ancré (contexte avant/après, `git apply --check`), refus si ambigu
-- ⬜ `E2` Relecture obligatoire après écriture : relire le fichier, vérifier que le
-  `replace_block` est bien présent (ou que la taille/lignes correspondent)
-- ⬜ `E3` Boucle de validation : après édition, exécuter la commande déclarée par
-  l'utilisateur (`/test go test ./...`), rapporter l'échec au modèle avec les lignes fautives
-- ⬜ `E4` `/undo` et `/redo` basés sur les checkpoints git (et `/diff` avant application)
-- ⬜ `E5` Checkpoints git : identité dédiée, groupe de commits par tâche, `--no-verify`,
-  échec explicite sans identité git (ERRATA-111)
+- ✅ `E1` Édition ancrée : `search_block` doit être **unique** (0 occurrence = erreur de contexte,
+  >1 = refus), sinon on modifie « la première », qui n'est pas forcément la bonne
+- ✅ `E2` Relecture obligatoire : `verifierContenu` relit le fichier et le compare octet à octet
+  à ce qui devait être écrit (écriture et édition)
+- ✅ `E3` Boucle de validation : `/test <commande>` exécutée automatiquement après chaque
+  écriture, verdict (OK/ÉCHEC) et sortie joints au résultat d'outil
+- ✅ `E4` `/undo` (restaure les fichiers du dernier checkpoint) et `/diff` (état + patch non commité)
+- ✅ `E5` Checkpoints git : identité dédiée `ds-agent`, pas de commit vide, échec signalé
+  (ERRATA-111) — reste ⬜ le regroupement « un commit par tâche »
 - ⬜ `E6` Détection de réécriture massive (fichier > 2 000 lignes, binaire, CRLF) : avertir
   et exiger confirmation supplémentaire
 - ⬜ `E7` Rapport de tâche : liste des fichiers touchés, commandes lancées, tests passés
-- **Critère de sortie** : 10 scénarios d'édition réels (ajout de fonction, renommage,
-  suppression, correction de test, gros fichier, fichier absent, encodage) passés en e2e
-  avec vérification du résultat, pas seulement de l'exit code.
+- **Reste à faire** : `E6` détection de réécriture massive (fichier > 2 000 lignes, binaire,
+  CRLF), `E7` rapport de tâche, scénarios d'édition bout-en-bout.
+- **Critère de sortie** (non atteint) : 10 scénarios d'édition réels passés en e2e sur le
+  **résultat**, pas seulement l'exit code.
 
 ---
 

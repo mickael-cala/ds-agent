@@ -221,8 +221,13 @@ func (a *Agent) toolWriteFile(args map[string]any) (string, error) {
 	}
 	a.gitCheckpoint(full)
 	os.MkdirAll(filepath.Dir(full), 0755)
-	err = writeFileAtomic(full, []byte(c), modeActuel(full, 0o644))
-	return "Écriture réussie.", err
+	if err := writeFileAtomic(full, []byte(c), modeActuel(full, 0o644)); err != nil {
+		return "", err
+	}
+	if err := verifierContenu(full, []byte(c)); err != nil {
+		return "", err
+	}
+	return "Écriture réussie (relue et vérifiée).", nil
 }
 
 func (a *Agent) toolEditFile(args map[string]any) (string, error) {
@@ -250,8 +255,14 @@ func (a *Agent) toolEditFile(args map[string]any) (string, error) {
 		return "", err
 	}
 	s = normaliseBlocNumerote(s)
-	if !strings.Contains(string(data), s) {
+	// E1 : ancrage par unicité. Un bloc présent 0 fois est une erreur de contexte,
+	// présent plusieurs fois c'est une édition ambiguë : dans les deux cas on refuse
+	// plutôt que de modifier « la première occurrence », qui n'est pas forcément la bonne.
+	switch n := strings.Count(string(data), s); {
+	case n == 0:
 		return "Échec : search_block introuvable (indentation?, numéros de ligne?).", nil
+	case n > 1:
+		return fmt.Sprintf("Échec : search_block ambigu (%d occurrences) — ajoute du contexte (lignes voisines).", n), nil
 	}
 	newC := strings.Replace(string(data), s, r, 1)
 	printDiff(p, string(data), newC)
@@ -259,8 +270,40 @@ func (a *Agent) toolEditFile(args map[string]any) (string, error) {
 		return "Annulé", nil
 	}
 	a.gitCheckpoint(full)
-	err = writeFileAtomic(full, []byte(newC), modeActuel(full, 0o644))
-	return "Modification appliquée.", err
+	if err := writeFileAtomic(full, []byte(newC), modeActuel(full, 0o644)); err != nil {
+		return "", err
+	}
+	// E2 : relecture — on vérifie sur disque ce qu'on croit avoir écrit.
+	if err := verifierContenu(full, []byte(newC)); err != nil {
+		return "", err
+	}
+	return "Modification appliquée (relue et vérifiée).", nil
+}
+
+// validerApresEdition exécute la commande `/test` si elle est définie (E3).
+// Le résultat est ajouté au message d'outil pour que le modèle voie l'échec.
+func (a *Agent) validerApresEdition(ctx context.Context) string {
+	if strings.TrimSpace(a.testCmd) == "" {
+		return ""
+	}
+	sortie := a.executerCommande(ctx, a.testCmd)
+	statut := "OK"
+	if !strings.Contains(strings.SplitN(sortie, "\n", 2)[0], "Code: 0") {
+		statut = "ÉCHEC"
+	}
+	return fmt.Sprintf("\n\n[VALIDATION — %s] %s\n%s", a.testCmd, statut, sortie)
+}
+
+// verifierContenu relit un fichier et le compare à ce qui devait être écrit (E2).
+func verifierContenu(full string, attendu []byte) error {
+	relu, err := os.ReadFile(full)
+	if err != nil {
+		return fmt.Errorf("relecture impossible : %w", err)
+	}
+	if !bytes.Equal(relu, attendu) {
+		return fmt.Errorf("relecture incohérente : %d octets attendus, %d sur disque", len(attendu), len(relu))
+	}
+	return nil
 }
 
 func (a *Agent) toolBash(ctx context.Context, args map[string]any) (string, error) {
@@ -275,7 +318,13 @@ func (a *Agent) toolBash(ctx context.Context, args map[string]any) (string, erro
 	if !a.approve("Exécuter") {
 		return "Annulé", nil
 	}
+	return a.executerCommande(ctx, c), nil
+}
 
+// executerCommande exécute une commande shell bornée (timeout, sortie plafonnée,
+// groupe de processus tué). Sans confirmation : l'appelant décide (outil bash,
+// commande de validation `/test`).
+func (a *Agent) executerCommande(ctx context.Context, c string) string {
 	limit := a.bashTimeout
 	if limit <= 0 {
 		limit = defaultBashT
@@ -285,7 +334,7 @@ func (a *Agent) toolBash(ctx context.Context, args map[string]any) (string, erro
 
 	sh, shArgs, err := commandWithSandbox(sandboxMode, a.workDir, c, exec.LookPath)
 	if err != nil {
-		return "", err
+		return "Erreur : " + err.Error()
 	}
 	cmd := exec.CommandContext(tCtx, sh, shArgs...)
 	cmd.Dir = a.workDir
@@ -298,11 +347,11 @@ func (a *Agent) toolBash(ctx context.Context, args map[string]any) (string, erro
 	if err != nil {
 		if tCtx.Err() == context.DeadlineExceeded {
 			killProcessGroup(cmd) // CommandContext n'a tué que le `sh` intermédiaire
-			return truncate(fmt.Sprintf("Code: -1\nOut:\n%s\n[TIMEOUT %ds — groupe de processus tué]", out.String(), limit), maxToolOut), nil
+			return truncate(fmt.Sprintf("Code: -1\nOut:\n%s\n[TIMEOUT %ds — groupe de processus tué]", out.String(), limit), maxToolOut)
 		}
 		if ctx.Err() == context.Canceled {
 			killProcessGroup(cmd)
-			return truncate(fmt.Sprintf("Code: -1\nOut:\n%s\n[INTERROMPU PAR AGENT SMITH]", out.String()), maxToolOut), nil
+			return truncate(fmt.Sprintf("Code: -1\nOut:\n%s\n[INTERROMPU PAR AGENT SMITH]", out.String()), maxToolOut)
 		}
 		if ee, ok := err.(*exec.ExitError); ok {
 			exitCode = ee.ExitCode()
@@ -311,7 +360,7 @@ func (a *Agent) toolBash(ctx context.Context, args map[string]any) (string, erro
 			exitCode = -1
 		}
 	}
-	return truncate(fmt.Sprintf("Code: %d\nOutput:\n%s", exitCode, out.String()), maxToolOut), nil
+	return truncate(fmt.Sprintf("Code: %d\nOutput:\n%s", exitCode, out.String()), maxToolOut)
 }
 
 func (a *Agent) toolWebSearch(ctx context.Context, args map[string]any) (string, error) {
