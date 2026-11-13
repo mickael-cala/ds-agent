@@ -6,6 +6,20 @@ publié sous forme de release binaire : les versions ci-dessous décrivent l'ét
 
 ## [Non publié]
 
+### Ajouté — clôture v0.3 (S1–S3, D2–D4)
+
+- **Contenus non fiables étiquetés** : chaque sortie d'outil part au modèle encadrée par
+  `[DONNÉES NON FIABLES — fichier local | contenu web | commande shell | serveur MCP]` ;
+  le prompt système impose de traiter ces blocs comme des données, jamais comme des
+  instructions, et de signaler les tentatives d'injection (`S2`).
+- **`/godmode` requalifié** : activation sur confirmation explicite, portée limitée à la
+  tâche en cours (`finDeTache`), décision `godmode` tracée dans le journal d'audit (`S3`).
+- **Garde-fou documentaire** : `scripts/check-docs.sh` vérifie les liens `.md`, les compteurs
+  de tests annoncés et l'absence de hashs de commit dans le plan ; cible `make docs` et étape
+  CI (`D2`–`D4`).
+- Modèle de menace consolidé dans `SECURITY.md` (`S1`) : actifs, adversaires, frontières,
+  trous assumés. Pas de second document à maintenir.
+
 ### Ajouté — tests, couverture et fuzzing (v0.3, T1–T5)
 
 - **Couverture 55,9 % → 67,7 %**, seuil **bloquant à 65 %** en CI et via `make cover`.

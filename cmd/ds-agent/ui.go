@@ -393,6 +393,15 @@ func (a *Agent) promptLabel() string {
 	return label
 }
 
+// finDeTache réinitialise les modes à portée d'une tâche : /godmode ne doit pas
+// survivre à la tâche pour laquelle il a été consenti (audit S3).
+func (a *Agent) finDeTache() {
+	if a.godmode {
+		a.godmode = false
+		fmt.Println("\n😈 [GODMODE] Désactivé automatiquement en fin de tâche.")
+	}
+}
+
 // printStatus affiche l'état réel de la session (U05) : sans ça, l'utilisateur
 // doit se souvenir de ce qu'il a activé et de ce qu'il reste comme budget.
 func (a *Agent) printStatus() {
@@ -512,12 +521,19 @@ func (a *Agent) handleCommand(in string) {
 			fmt.Println("🛑 Rabbithole désactivé.")
 		}
 	case "/godmode":
-		a.godmode = !a.godmode
 		if a.godmode {
-			fmt.Println("😈 [GODMODE] Activé (IDDQD). L'agent a les pleins pouvoirs, plus de confirmations.")
-		} else {
+			a.godmode = false
 			fmt.Println("🛑 Godmode désactivé.")
+			return
 		}
+		fmt.Println("😈 [GODMODE] Désactive TOUTES les confirmations (écriture, shell, outils MCP).")
+		fmt.Println("   Portée : la tâche en cours uniquement ; réactivation = nouvelle confirmation.")
+		if !a.approve("Activer godmode pour cette tâche") {
+			fmt.Println("Godmode non activé.")
+			return
+		}
+		a.godmode = true
+		fmt.Println("😈 [GODMODE] Activé.")
 
 	case "/help":
 		fmt.Println("=== COMMANDES STANDARDS ===")

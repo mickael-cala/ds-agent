@@ -20,18 +20,19 @@ Règles du jeu :
 | 3 | Exploitation & traçabilité | 5 | ✅ fait | « Sprint 3 » |
 | 4 | Confort & pilotage | 5 | ✅ fait | « Sprint 4 » |
 | 5 | Confiance vérifiable (hors plan initial) | 5 | ✅ fait | « Sprint 5 » |
-| 6 | Renommage du module & publication | 5 | ✅ fait | `24917e5` |
+| 6 | Renommage du module & publication | 5 | ✅ fait | « Sprint 6 » |
 | 7 | Hygiène avant release | 5 | ✅ fait | « Sprint 7 » |
 | 8 | Finaliser v0.2 | 5 | ✅ fait | « Sprint 8 » |
 | 9 | Découpage v0.3 + consolidation docs | 5 | ✅ fait | « Sprint 9 » |
 | 10 | Réorganisation de la racine | 5 | ✅ fait | « Sprint 10 » |
 | 11 | Tests, couverture, fuzzing (v0.3) | 5 | ✅ fait | « Sprint 11 » |
+| 12 | Clôture v0.3 : injection, godmode, docs | 5 | ✅ fait | « Sprint 12 » |
 | Réserve | Non planifié | 1+ | ⬜ à faire | — |
 
 Les hashs de commits ne sont **pas** stockés ici (ils changent à chaque rebase) : se référer
 aux messages de commit. La suite du programme est dans [ROADMAP.md](ROADMAP.md) (v0.3 → v1.0).
 
-**Bilan : 50/50 items livrés**, 78 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
+**Bilan : 55/55 items livrés**, 83 tests, 16 scénarios hostiles, 2 scénarios bout-en-bout,
 CI multi-plateforme, documentation à jour.
 
 ---
@@ -156,6 +157,16 @@ Objectif : rendre les garde-fous **prouvables par une machine**, pas seulement p
 
 Effets de bord corrigés au passage : `toolWebSearch` acceptait un `query` absent ;
 `TestMain` interdit tout accès réseau réel pendant les tests.
+
+## Sprint 12 — « clôture v0.3 »
+
+| # | Item | Réf. | Preuve | Statut |
+|---|---|---|---|---|
+| 12.1 | Sorties d'outils étiquetées « données non fiables » + règle dans le prompt | S2 | `TestProvenanceOutil`, `TestEtiqueterSortieOutil`, `TestRunLoopEtiquetteLesSorties` | ✅ |
+| 12.2 | `/godmode` : confirmation, portée d'une tâche, trace d'audit | S3 | `TestGodmodeDemandeConfirmation`, `TestFinDeTacheDesactiveGodmode` | ✅ |
+| 12.3 | Modèle de menace consolidé dans `SECURITY.md` | S1 | section « Modèle de menace » + « ne protège pas » | ✅ |
+| 12.4 | `scripts/check-docs.sh` (liens, compteurs, hashs) en CI | D2 | `TestCheckDocs`, `make docs` | ✅ |
+| 12.5 | Dettes doc soldées | D3, D4 | `check-docs` vert | ✅ |
 
 ## Réserve (non planifié)
 

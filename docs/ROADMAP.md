@@ -28,7 +28,7 @@ cases sont cochées : il est fini quand son critère est vérifié en CI.
 
 | Indicateur | Valeur |
 |---|---|
-| Tests unitaires | ✅ 78 (dont 3 cibles de fuzzing exercées en CI) |
+| Tests unitaires | ✅ 83 (+ 3 cibles de fuzzing exercées en CI) |
 | Couverture | ⚠️ 67,7 % (objectif v0.3 : ≥ 65 %, `T1`) |
 | Banc hostile | ✅ 16 scénarios, 0 échec critique |
 | Bout-en-bout | ✅ 2 scénarios (binaire réel + mock) |
@@ -88,12 +88,12 @@ v0.4→v0.6 empilent des fonctionnalités sur un socle qu'on ne sait pas tester.
 
 ### Sécurité : le document avant les mesures (`S`)
 
-- ⬜ `S1` `THREAT_MODEL.md` : actifs (clé API, code, secrets), adversaires (modèle,
-  contenu lu, serveur MCP, dépôt cloné), frontières, ce que l'agent **ne** protège pas
-- ⬜ `S2` Étiqueter les contenus non fiables (« ceci vient d'un fichier/page, pas de
-  l'utilisateur ») dans les sorties d'outils, et le dire dans le prompt système
-- ⬜ `S3` Décider et écrire : `/godmode` = mode dégradé explicite (avertissement persistant,
-  expiration en fin de tâche, entrée d'audit dédiée)
+- ✅ `S1` Modèle de menace : vit dans [SECURITY.md](../SECURITY.md) (actifs, adversaires,
+  frontières, « ce que l'agent ne protège pas ») — un seul document, pas de duplication
+- ✅ `S2` `etiqueterSortieOutil` : chaque sortie est encadrée `[DONNÉES NON FIABLES — …]`,
+  et le prompt système interdit de suivre des instructions trouvées dans une donnée
+- ✅ `S3` `/godmode` : confirmation obligatoire, portée = une tâche (`finDeTache`),
+  décision `godmode` dans le journal d'audit, invite `GOD` visible
 - **Critère de sortie** : le modèle de menace liste chaque garde-fou existant **et** chaque
   trou connu (injection, réseau, sessions en clair) sans euphémisme.
 
@@ -102,11 +102,11 @@ v0.4→v0.6 empilent des fonctionnalités sur un socle qu'on ne sait pas tester.
 - ✅ `D1` Consolidé : 9 `.md` à la racine ; `FAQ` → `README`, `CODE_OF_CONDUCT` et
   `PUBLISHING` → `CONTRIBUTING`, `LICENSE-COMMERCIAL` → `LICENSING`, `STATUS` → `ROADMAP`,
   `ANALYSE_main` supprimé, `AUDIT`/`PLAN_ACTION` archivés dans `docs/`
-- ⬜ `D2` `scripts/check-docs.sh` (reste à écrire) : liens `.md` valides, compteurs de tests alignés sur
-  `go test -json`, hashs de `PLAN_ACTION` existants — exécuté en CI
-- ⬜ `D3` Retirer les numéros de ligne des docs d'analyse (ou les générer)
-- ⬜ `D4` `PLAN_ACTION.md` : arrêter d'y stocker des hashs (référencer les titres de commit)
-- **Critère de sortie** : `scripts/check-docs.sh` vert en CI, ≤ 9 fichiers `.md` à la racine.
+- ✅ `D2` `scripts/check-docs.sh` : liens `.md`, compteurs de tests réels, hashs interdits
+  dans le plan — cible `make docs` + étape CI
+- ✅ `D3` Numéros de ligne retirés (`ANALYSE_main.md` supprimé, docs sans références de lignes)
+- ✅ `D4` Plus aucun hash de commit dans `PLAN_ACTION.md` (vérifié par `check-docs`)
+- **Critère de sortie** : ✅ `check-docs` vert en CI, 9 fichiers `.md` à la racine.
 
 ---
 

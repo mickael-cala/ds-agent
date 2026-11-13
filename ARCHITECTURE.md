@@ -54,14 +54,14 @@ racine            README, AGENTS, CONTRIBUTING, SECURITY, CHANGELOG, LICENSE,
 | `cmd/ds-agent/sandbox.go` | ~105 | `commandWithSandbox` (bwrap), `motDetecte` |
 | `cmd/ds-agent/audit.go` | ~75 | journal JSONL append-only |
 | `cmd/ds-agent/proc_unix.go` / `proc_windows.go` | ~30 | groupe de processus, `flock` |
-| `cmd/ds-agent/*_test.go` | `compact`, `safety`, `trust`, `sprint3…8` (78 tests) |
+| `cmd/ds-agent/*_test.go` | `compact`, `safety`, `trust`, `sprint3…8` (83 tests) |
 | `tools/paranoid/` | faux backend DeepSeek : 16 scénarios hostiles (`[[429]]`, `[[html]]`…) |
 | `tests/*.sh` | banc hostile, e2e REPL, compaction A/B, coupures |
 | `audit_api/` | sous-projet : micro-API Go 1.22 (routage par méthode) + 4 tests |
 | `.github/workflows/ci.yml` | qualité (`-race`), anti-secret, e2e, build 3 OS, `govulncheck` |
 
 > Découpage terminé (roadmap v0.3, `B1`–`B4`) : `main.go` est passé de 2 230 à ~340 lignes,
-> aucun fichier > 550 lignes, comportement inchangé (78 tests + banc hostile + e2e verts).
+> aucun fichier > 550 lignes, comportement inchangé (83 tests + banc hostile + e2e verts).
 
 ## Cycle d'un tour
 

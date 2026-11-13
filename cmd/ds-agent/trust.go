@@ -203,3 +203,30 @@ func normaliseBlocNumerote(s string) string {
 	}
 	return strings.Join(lignes, "\n")
 }
+
+// provenanceOutil décrit l'origine d'une sortie d'outil. Le modèle doit savoir
+// qu'il lit une DONNÉE (fichier, page, sortie de commande) et non une instruction.
+func provenanceOutil(nom string) string {
+	switch {
+	case nom == "local_read_file", nom == "local_write_file", nom == "local_edit_file":
+		return "fichier local"
+	case nom == "local_bash":
+		return "commande shell"
+	case nom == "local_web_search", nom == "local_web_fetch":
+		return "contenu web"
+	case strings.HasPrefix(nom, "mcp_"):
+		return "serveur MCP"
+	}
+	return "outil externe"
+}
+
+// etiqueterSortieOutil encadre un résultat d'outil par un marqueur explicite.
+// Ce n'est pas une protection contre l'injection : c'est ce qui permet au modèle
+// (et à l'audit) de distinguer une donnée d'une consigne.
+func etiqueterSortieOutil(nom, contenu string) string {
+	if strings.TrimSpace(contenu) == "" {
+		return contenu
+	}
+	return "[DONNÉES NON FIABLES — " + provenanceOutil(nom) + "]\n" +
+		contenu + "\n[/DONNÉES NON FIABLES]"
+}

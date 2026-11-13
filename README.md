@@ -106,7 +106,7 @@ Scripts fournis : `build_and_run.sh` (Unix), `build_and_run.cmd` (Windows), `cle
 
 `/mandalorian` 🛡️ (zéro bavardage) · `/bladerunner` 🦄 (audit sécurité) ·
 `/terminator` 🤖 (n'abandonne pas sur les erreurs web) · `/matrix` 💊 (relance jusqu'au
-succès) · `/rabbithole` 🐇 (999 itérations) · `/godmode` 😈 (**[DANGER]** aucune confirmation).
+succès) · `/rabbithole` 🐇 (999 itérations) · `/godmode` 😈 (**[DANGER]** confirmation requise, portée limitée à la tâche en cours).
 
 L'invite affiche les modes actifs : `[deepseek-chat|GOD,RABBIT] Vous >`.
 
@@ -174,7 +174,7 @@ isolé, et une injection de prompt (contenu lu) n'est pas détectée. Voir
 ```bash
 make check                    # lint + tests + anti-secret + banc hostile + e2e
 # détail :
-go test ./...                 # 78 tests (compaction, sécurité, outils, sessions)
+go test ./...                 # 83 tests (compaction, sécurité, outils, sessions)
 go vet ./... && gofmt -l .
 bash tests/paranoid.sh        # banc hostile : 16 scénarios, 0 échec attendu
 bash tests/e2e.sh             # bout-en-bout : binaire réel + mock, boucle d'outils

@@ -38,6 +38,9 @@ jobs:
       - name: Aucun secret versionné
         run: bash scripts/check-secrets.sh
 
+      - name: Documentation cohérente
+        run: bash scripts/check-docs.sh
+
       - name: Tests unitaires (race, couverture)
         run: go test -race -count=1 -coverprofile=cover.out ./cmd/...
 

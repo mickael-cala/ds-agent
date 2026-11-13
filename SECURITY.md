@@ -21,7 +21,7 @@ correctifs.
 | Système de fichiers | évasion du répertoire de travail | ⚠️ `safePath` pour les outils fichier ; `local_bash` = shell complet |
 | Terminal de l'opérateur | séquences ANSI/`\r` trompant la confirmation | ✅ `sanitizeTerm` |
 | Réseau | exfiltration via `bash`, SSRF | ❌ non isolé (`--sandbox` ne coupe pas le réseau) |
-| Prompt | injection par contenu lu (fichier, page, sortie, MCP) | ❌ non détectée — voir roadmap `S2`, `S7` |
+| Prompt | injection par contenu lu (fichier, page, sortie, MCP) | ⚠️ **étiquetée** (`[DONNÉES NON FIABLES …]`), non détectée — roadmap `S7` |
 | Sessions / audit | lecture par un autre processus du même compte | ⚠️ `0600`, hors `/tmp`, non chiffré |
 
 **Adversaires considérés** : le modèle lui-même (erreur ou instruction malveillante), un
@@ -48,6 +48,10 @@ autre processus du même compte.
 - **Journal d'audit** append-only `0600` (empreinte des arguments, jamais en clair).
 - **Sandbox** `--sandbox` : bubblewrap, racine en lecture seule, `workDir`/`/tmp`
   inscriptibles, PID/UTS isolés, `HOME` = `workDir`. Refus de démarrer sans `bwrap`.
+- **Étiquetage des données** : toute sortie d'outil est encadrée `[DONNÉES NON FIABLES — …]`
+  avant d'être renvoyée au modèle ; le prompt système interdit d'y obéir.
+- **`/godmode` à portée** : confirmation explicite, désactivation automatique en fin de tâche,
+  décision tracée dans l'audit — plus de « pleins pouvoirs » permanents oubliés.
 
 ## Ce que l'agent ne protège pas
 
@@ -55,7 +59,8 @@ autre processus du même compte.
    hors du répertoire, lancer un serveur. `--sandbox` réduit la surface, ne l'annule pas.
 2. **Le réseau n'est pas isolé.** Un `curl` reste possible, y compris sous `--sandbox`.
 3. **L'injection de prompt n'est pas détectée.** Un fichier ou une page contenant
-   « ignore les instructions précédentes » n'est qu'une chaîne de caractères.
+   « ignore les instructions précédentes » est étiqueté comme donnée, mais rien ne mesure
+   si le modèle obéit quand même (`S7`).
 4. **Les sessions et l'audit ne sont pas chiffrés** (permissions `0600` seulement).
 5. **Windows** : pas de `flock`, `kill` limité au processus direct, pas de sandbox.
 6. **Les checkpoints git** échouent silencieusement sans `user.name`/`user.email`.

@@ -110,7 +110,11 @@ func (a *Agent) runLoop(ctx context.Context) (string, error) {
 				decision = "sans"
 			}
 			a.audit(tc.Function.Name, tc.Function.Arguments, decision, statut, len(result))
-			a.history = append(a.history, Message{Role: "tool", ToolCallID: tc.ID, Content: result})
+			a.history = append(a.history, Message{
+				Role:       "tool",
+				ToolCallID: tc.ID,
+				Content:    etiqueterSortieOutil(tc.Function.Name, result),
+			})
 		}
 
 		if !a.terminator && consecutiveErrors >= 5 {
